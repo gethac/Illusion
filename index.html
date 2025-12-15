@@ -598,7 +598,6 @@
                     closeEditModal();
                 };
 
-                // 导出 PPT 功能重写
                 const exportPPT = () => {
                     const pptx = new PptxGenJS();
                     pptx.layout = 'LAYOUT_16x9';
@@ -618,13 +617,13 @@
                             // 顶部金色线条
                             { rect: { x: 0, y: 0, w: "100%", h: 0.05, fill: { color: gold } } },
                             // 底部青色线条
-                            { rect: { x: 0, y: 7.45, w: "100%", h: 0.05, fill: { color: cyan } } },
+                            { rect: { x: 0, y: 5.575, w: "100%", h: 0.05, fill: { color: cyan } } },
                             // 角落装饰 (左上)
                             { rect: { x: 0.2, y: 0.2, w: 0.05, h: 0.5, fill: { color: gold } } },
                             { rect: { x: 0.2, y: 0.2, w: 0.5, h: 0.05, fill: { color: gold } } },
                             // 角落装饰 (右下)
-                            { rect: { x: 13.1, y: 7.2, w: 0.05, h: 0.5, fill: { color: cyan } } },
-                            { rect: { x: 12.6, y: 7.25, w: 0.55, h: 0.05, fill: { color: cyan } } }
+                            { rect: { x: 9.75, y: 5.375, w: 0.05, h: 0.25, fill: { color: cyan } } },
+                            { rect: { x: 9.5, y: 5.575, w: 0.3, h: 0.05, fill: { color: cyan } } }
                         ]
                     };
                     pptx.defineSlideMaster(masterOpts);
@@ -634,106 +633,92 @@
                     if(pptConfig.templateBg) cover.background = { data: pptConfig.templateBg };
                     else cover.background = { color: bgDark };
 
-                    // 封面中心装饰框
-                    cover.addShape('rect', { x: 3.0, y: 2.0, w: 7.33, h: 3.5, line: { color: gold, width: 1.5 }, fill: { color: "000000", transparency: 60 } });
+                    // 封面中心装饰框 (半透明)
+                    cover.addShape('rect', { x: 2.0, y: 1.5, w: 6.0, h: 2.625, line: { color: gold, width: 1.5 }, fill: { color: "000000", transparency: 60 } });
                     // 四角点缀
-                    cover.addShape('rect', { x: 2.9, y: 1.9, w: 0.2, h: 0.2, fill: { color: gold } });
-                    cover.addShape('rect', { x: 10.23, y: 5.4, w: 0.2, h: 0.2, fill: { color: gold } });
+                    cover.addShape('rect', { x: 1.9, y: 1.4, w: 0.1, h: 0.1, fill: { color: gold } });
+                    cover.addShape('rect', { x: 8.0, y: 4.125, w: 0.1, h: 0.1, fill: { color: gold } });
 
-                    cover.addText("PORTFOLIO / PRESENTATION", { x: 3.0, y: 2.3, w: 7.33, fontSize: 10, color: gold, align: "center", charSpacing: 3 });
-                    cover.addText(topic.value, { x: 3.2, y: 2.8, w: 6.93, fontSize: 40, bold: true, color: "FFFFFF", align: "center", fontFace: "Georgia" });
+                    cover.addText("PORTFOLIO / PRESENTATION", { x: 2.0, y: 1.8, w: 6.0, fontSize: 10, color: gold, align: "center", charSpacing: 3, fontFace: "Arial Black" });
+                    cover.addText(topic.value, { x: 2.2, y: 2.2, w: 5.6, fontSize: 36, bold: true, color: "FFFFFF", align: "center", fontFace: "Microsoft YaHei" });
                     
                     // 封面中间的菱形装饰
-                    cover.addShape('rect', { x: 6.5, y: 4.0, w: 0.3, h: 0.3, fill: { color: gold }, rotate: 45 });
+                    cover.addShape('rect', { x: 4.9, y: 3.5, w: 0.2, h: 0.2, fill: { color: gold }, rotate: 45 });
 
-                    cover.addText(new Date().toLocaleDateString(), { x: 3.0, y: 4.8, w: 7.33, fontSize: 12, color: cyan, align: "center" });
+                    cover.addText(new Date().toLocaleDateString(), { x: 2.0, y: 3.8, w: 6.0, fontSize: 12, color: cyan, align: "center", fontFace: "Courier New" });
 
                     // 2. 内容页循环
                     slides.value.forEach((s, i) => {
                         const slide = pptx.addSlide({ masterName: "FANTASY_MASTER" });
                         
                         // 页码
-                        slide.addText(`0${i+1}`, { x:0.3, y:0.4, fontSize:14, color:gold, fontFace:"Courier New" });
+                        slide.addText(`0${i+1}`, { x:0.25, y:0.4, fontSize:12, color:gold, charSpacing:2, fontFace: "Arial Black" });
                         
                         // 标题栏装饰线
-                        slide.addShape('line', { x: 0.8, y: 0.9, w: 11.7, h: 0, line: { color: "333333", width: 1 } });
+                        slide.addShape('line', { x: 0.8, y: 0.7, w: 8.8, h: 0, line: { color: "333333", width: 1 } });
                         // 标题
-                        slide.addText(s.title, { x: 0.8, y: 0.4, w: 11.0, fontSize: 24, bold: true, color: textMain, fontFace: "Georgia" });
+                        slide.addText(s.title, { x: 0.8, y: 0.25, w: 8.8, fontSize: 20, bold: true, color: textMain, fontFace: "Microsoft YaHei" });
 
-                        // --- 版式逻辑 ---
-                        
-                        // A. Big Data (核心数据)
+                        // Layouts
                         if (s.layout === 'big-data') {
-                            // 大数值
-                            slide.addText(s.dataValue || '0%', { 
-                                x: 0.5, y: 2.5, w: 12.33, 
-                                align: 'center', fontSize: 80, bold: true, color: gold, fontFace: "Georgia" 
-                            });
-                            // 标签
-                            slide.addText(s.dataLabel || 'METRIC', { 
-                                x: 0.5, y: 4.0, w: 12.33, 
-                                align: 'center', fontSize: 18, color: cyan, charSpacing: 4 
-                            });
-                            // 正文
-                            slide.addText(s.content, { 
-                                x: 3.5, y: 5.0, w: 6.33, 
-                                align: 'center', fontSize: 14, color: textDim 
-                            });
-                        }
-                        
-                        // B. Timeline (时间轴)
-                        else if (s.layout === 'timeline') {
-                            slide.addText(s.content, { x: 0.8, y: 1.2, w: 11.7, h: 1.0, fontSize: 14, color: textMain });
+                            // Big Data Background Box
+                            slide.addShape('rect', { x: 1.5, y: 1.2, w: 7.0, h: 3.5, fill: { color: "111111", transparency: 60 }, line: { color: "333333" } });
                             
-                            // 主轴线
-                            slide.addShape('line', { x: 1.0, y: 4.5, w: 11.33, h: 0, line: { color: gold, width: 2 } });
+                            slide.addText(s.dataValue || '0%', { x: 1.5, y: 2.0, w: 7.0, align: 'center', fontSize: 60, bold: true, color: gold, fontFace:"Arial Black", shadow: { type: 'outer', color: gold, blur: 10, offset: 2, angle: 45 } });
+                            slide.addText(s.dataLabel || 'METRIC', { x: 1.5, y: 3.2, w: 7.0, align: 'center', fontSize: 16, color: cyan, charSpacing: 4, fontFace: "Microsoft YaHei" });
+                            slide.addText(s.content, { x: 2.5, y: 3.8, w: 5.0, align: 'center', fontSize: 12, color: textDim, fontFace: "Microsoft YaHei" });
+                        }
+                        else if (s.layout === 'timeline') {
+                            slide.addText(s.content, { x: 0.5, y: 1.0, w: 9.0, h: 0.8, fontSize: 12, color: textColor, fontFace: "Microsoft YaHei" });
+                            
+                            // Line
+                            slide.addShape('line', { x: 1.0, y: 3.0, w: 8.0, h: 0, line: { color: themeColor, width: 2 } });
                             
                             (s.items || []).slice(0,4).forEach((item, idx) => {
-                                const xPos = 1.0 + (idx * 3.0);
-                                // 菱形节点
-                                slide.addShape('rect', { x: xPos + 1.2, y: 4.35, w: 0.3, h: 0.3, fill: { color: cyan }, rotate: 45 });
+                                const xPos = 1.0 + (idx * 2.2);
+                                // Diamond Node
+                                slide.addShape('rect', { x: xPos + 0.9, y: 2.85, w: 0.3, h: 0.3, fill: { color: accentCyan }, rotate: 45 });
                                 const parts = item.split(/[:：]/);
-                                slide.addText(parts[0] || `Step ${idx+1}`, { x: xPos, y: 3.8, w: 2.7, align: 'center', fontSize: 14, bold: true, color: gold });
-                                slide.addText(parts[1] || item, { x: xPos, y: 4.8, w: 2.7, align: 'center', fontSize: 11, color: textMain });
+                                slide.addText(parts[0] || `Step ${idx+1}`, { x: xPos, y: 2.4, w: 2.0, align: 'center', fontSize: 11, bold: true, color: themeColor, fontFace: "Microsoft YaHei" });
+                                slide.addText(parts[1] || item, { x: xPos, y: 3.3, w: 2.0, align: 'center', fontSize: 10, color: secColor, fontFace: "Microsoft YaHei" });
                             });
                         }
-                        
-                        // C. Comparison (对比)
                         else if (s.layout === 'comparison') {
-                            // 左框 (默认/现状)
-                            slide.addShape('rect', { x: 0.8, y: 1.8, w: 5.6, h: 5.0, line: { color: "444444" }, fill: { color: "111111", transparency:50 } });
-                            slide.addText("PRESENT", { x: 1.0, y: 2.0, fontSize: 12, color: textDim, charSpacing:2 });
-                            slide.addText(s.content, { x: 1.0, y: 2.5, w: 5.2, fontSize: 14, color: textMain });
+                            // Left Box
+                            slide.addShape('rect', { x: 0.5, y: 1.5, w: 4.25, h: 3.5, line: { color: "444444" }, fill: { color: "111111", transparency:50 } });
+                            slide.addText("PRESENT", { x: 0.7, y: 1.7, fontSize: 10, color: secColor, charSpacing:2, fontFace: "Arial Black" });
+                            slide.addText(s.content, { x: 0.7, y: 2.0, w: 3.85, fontSize: 12, color: textColor, fontFace: "Microsoft YaHei" });
 
-                            // 右框 (未来/方案 - 金色高亮)
-                            slide.addShape('rect', { x: 6.9, y: 1.8, w: 5.6, h: 5.0, line: { color: gold }, fill: { color: "111111", transparency:50 } });
-                            // 右框角标
-                            slide.addShape('rect', { x: 12.3, y: 1.8, w: 0.2, h: 0.2, fill: { color: gold } }); 
-                            slide.addText("FUTURE", { x: 7.1, y: 2.0, fontSize: 12, color: gold, charSpacing:2 });
+                            // Right Box (Accent Border)
+                            slide.addShape('rect', { x: 5.25, y: 1.5, w: 4.25, h: 3.5, line: { color: themeColor }, fill: { color: "111111", transparency:50 } });
+                            // Decorative corner
+                            slide.addShape('rect', { x: 9.35, y: 1.5, w: 0.15, h: 0.15, fill: { color: themeColor } });
+                            
+                            slide.addText("FUTURE", { x: 5.45, y: 1.7, fontSize: 10, color: themeColor, charSpacing:2, fontFace: "Arial Black" });
                             
                             (s.items || []).forEach((item, idx) => {
                                 slide.addText(item, { 
-                                    x: 7.1, y: 2.5 + (idx*0.6), w: 5.2, 
-                                    fontSize: 14, color: textMain, bullet: { code: "25C6", color: cyan } 
+                                    x: 5.45, y: 2.0 + (idx*0.5), w: 3.85, 
+                                    fontSize: 12, color: textMain, bullet: { code: "25C6", color: accentCyan }, fontFace: "Microsoft YaHei" 
                                 });
                             });
                         }
-                        
-                        // D. Standard (经典)
                         else {
-                            const textW = s.imgData ? 6.0 : 11.7;
-                            // 正文
-                            slide.addText(s.content, { x: 0.8, y: 1.2, w: textW, h: 1.5, fontSize: 16, color: textMain, align: "justify" });
-                            // 列表
+                            // Standard Layout
+                            const textW = s.imgData ? 4.5 : 9.0;
+                            // Content Box Background (optional visual aid)
+                            // slide.addShape('rect', { x: 0.5, y: 1.2, w: textW, h: 4.0, fill: { color: "111111", transparency: 80 } });
+                            
+                            slide.addText(s.content, { x: 0.5, y: 1.0, w: textW, h: 1.2, fontSize: 14, color: textColor, align: "justify", fontFace: "Microsoft YaHei" });
+                            
                             (s.items||[]).forEach((p, idx) => {
-                                slide.addText(p, { x: 0.8, y: 3.0 + (idx*0.6), w: textW, fontSize: 14, color: textMain, bullet: { code: "25C6", color: gold } });
+                                slide.addText(p, { x: 0.5, y: 2.4 + (idx*0.5), w: textW, fontSize: 12, color: textColor, bullet: { code: "25C6", color: themeColor }, fontFace: "Microsoft YaHei" });
                             });
 
-                            // 图片区
                             if (s.imgData) {
-                                // 图片框装饰
-                                slide.addShape('rect', { x: 7.3, y: 1.5, w: 5.0, h: 5.0, line: { color: gold, width: 1 } });
-                                slide.addImage({ data: `image/png;base64,${s.imgData}`, x: 7.4, y: 1.6, w: 4.8, h: 4.8, sizing: { type: "cover", w: 4.8, h: 4.8 } });
+                                // Image Frame
+                                slide.addShape('rect', { x: 5.2, y: 1.2, w: 4.3, h: 3.5, line: { color: themeColor, width: 1 } });
+                                slide.addImage({ data: `image/png;base64,${s.imgData}`, x: 5.25, y: 1.25, w: 4.2, h: 3.4, sizing: { type: "cover", w: 4.2, h: 3.4 } });
                             }
                         }
                     });
