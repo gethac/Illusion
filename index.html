@@ -18,123 +18,48 @@
     <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500&family=Cinzel:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Noto+Sans+SC:wght@300;400;500&family=Cinzel:wght@400;700&family=Montserrat:wght@400;800&family=Playfair+Display:wght@400;700&family=Roboto:wght@400;700&family=Merriweather:wght@400;700&family=Nunito:wght@400;700&family=Libre+Baskerville:wght@400;700&family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-    <style>
-        :root {
-            --bg-dark: #0a1111;
-            --accent-gold: #d4b778;
-            --accent-cyan: #6fffe9;
-            --text-primary: #e0e0e0;
-        }
-        
-        body {
-            font-family: 'Noto Sans SC', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-primary);
-            overflow: hidden;
-            margin: 0;
-        }
-
-        .font-serif { font-family: 'Noto Serif SC', 'Cinzel', serif; }
-
-        /* 背景画布 */
-        #particle-canvas {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none;
-        }
-
-        /* 游戏容器 (Dialog) */
-        .game-container {
-            background: rgba(15, 20, 22, 0.85);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 60px rgba(0,0,0,0.8), inset 0 0 0 1px rgba(212, 183, 120, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-        .game-container::before {
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-gold), transparent);
-        }
-        .game-container::after {
-            content: ''; position: absolute; bottom: 0; left: 0; width: 100%; height: 2px;
-            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-        }
-
-        /* 步骤切换动画 */
-        .step-enter-active, .step-leave-active { transition: all 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
-        .step-enter-from { opacity: 0; transform: translateX(50px) scale(0.95); filter: blur(10px); }
-        .step-leave-to { opacity: 0; transform: translateX(-50px) scale(0.95); filter: blur(10px); }
-
-        /* 输入框 */
-        .magic-input {
-            background: rgba(0, 0, 0, 0.6);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: #fff;
-            transition: all 0.3s;
-        }
-        .magic-input:focus {
-            background: rgba(0, 0, 0, 0.8);
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 15px rgba(111, 255, 233, 0.2);
-            outline: none;
-        }
-
-        /* 按钮 */
-        .game-btn {
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s;
-            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-        }
-        .game-btn:hover:not(:disabled) {
-            transform: translateY(-2px);
-            filter: brightness(1.2);
-            box-shadow: 0 5px 20px rgba(111, 255, 233, 0.2);
-        }
-        .game-btn:disabled { filter: grayscale(1); opacity: 0.5; cursor: not-allowed; }
-
-        /* 打字机光标 */
-        .typing-cursor::after {
-            content: '|';
-            animation: blink 1s step-end infinite;
-        }
-        @keyframes blink { 50% { opacity: 0; } }
-
-        /* 扫描线 */
-        .scanlines {
-            position: fixed; inset: 0; pointer-events: none; z-index: 5;
-            background: repeating-linear-gradient(to bottom, transparent 0, transparent 2px, rgba(0,0,0,0.2) 3px);
-            opacity: 0.1;
-        }
-
-        /* 结果页特殊样式 */
-        .result-view {
-            animation: fade-in 1s ease-out;
-        }
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-
-        /* 进度条动画 */
-        .progress-fill {
-            background: linear-gradient(90deg, var(--accent-gold), var(--accent-cyan));
-            background-size: 200% 100%;
-            animation: gradient-move 2s linear infinite;
-        }
-        @keyframes gradient-move { 0% { background-position: 100% 0; } 100% { background-position: -100% 0; } }
-
-        [v-cloak] { display: none; }
-    </style>
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/styles.css">
 </head>
-<body class="h-screen w-screen overflow-hidden bg-[#05080a] relative flex items-center justify-center">
-    
+<body class="h-screen w-screen overflow-hidden bg-[#05080a] relative flex items-center justify-center" :class="{ 'reduce-motion': !visualConfig.enableAnimations }">
+
+    <!-- 加载遮罩 -->
+    <div id="app-loading" class="app-loading">
+        <div class="spinner"></div>
+    </div>
+
     <canvas id="particle-canvas"></canvas>
     <div class="scanlines"></div>
     <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-20 pointer-events-none"></div>
 
+    <!-- 前景视差装饰线条 -->
+    <div class="parallax-accent-line accent-line-1 parallax-foreground"></div>
+    <div class="parallax-accent-line accent-line-2 parallax-foreground"></div>
+    <div class="parallax-accent-line accent-line-3 parallax-foreground"></div>
+    <div class="parallax-accent-line accent-line-4 parallax-foreground"></div>
+    <div class="parallax-accent-line accent-line-5 parallax-foreground"></div>
+    <div class="parallax-accent-line accent-line-6 parallax-foreground"></div>
+
+    <!-- 启动仪式光晕效果 -->
+    <div id="launch-glow" class="launch-glow"></div>
+
     <div id="app" v-cloak class="relative z-10 w-full h-full flex flex-col items-center justify-center p-4">
-        
-        <!-- 步骤 0-4: 引导流程 -->
-        <transition name="step" mode="out-in">
+
+        <!-- 动画开关按钮 -->
+        <button @click="visualConfig.enableAnimations = !visualConfig.enableAnimations"
+                class="fixed top-4 right-4 z-50 p-2 rounded bg-black/60 hover:bg-black/80 border border-white/10 transition-colors group"
+                title="切换动画效果">
+            <v-icon :name="visualConfig.enableAnimations ? 'zap' : 'zap-off'" :size="20"
+                    :class="visualConfig.enableAnimations ? 'text-[var(--accent-gold)]' : 'text-[#8a9a9a]'"></v-icon>
+            <span class="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-xs text-white bg-black/90 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                {{ visualConfig.enableAnimations ? '动画已启用' : '动画已禁用' }}
+            </span>
+        </button>
+
+        <!-- 步骤 0-5: 引导流程 -->
+        <transition :name="uiState.isLaunchingGeneration ? 'launch-animation' : 'step'" mode="out-in">
             
             <!-- STEP 0: 启动 -->
             <div v-if="step === 0" key="step0" class="text-center">
@@ -153,616 +78,532 @@
             <!-- STEP 1: 配置连接 -->
             <div v-else-if="step === 1" key="step1" class="game-container w-full max-w-lg p-8 rounded-xl text-center">
                 <div class="text-[#6fffe9] text-xs font-bold tracking-widest mb-2 uppercase">Step 01 // Link</div>
-                <h2 class="text-2xl font-serif text-white mb-6">接入智识网络 <span class="text-sm opacity-50 font-sans">(API配置)</span></h2>
+                <h2 class="text-2xl font-serif text-white mb-6">接入智识网络</h2>
                 
                 <div class="space-y-4 text-left">
                     <div>
-                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">API 网关地址</label>
+                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">API 网关 (Base URL)</label>
                         <input v-model="config.baseUrl" class="magic-input w-full p-3 rounded" placeholder="https://api.openai.com/v1">
                     </div>
                     <div>
                         <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">API 密钥令符</label>
                         <input v-model="config.apiKey" type="password" class="magic-input w-full p-3 rounded" placeholder="sk-...">
                     </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">文字模型</label>
+                            <input v-model="config.textModel" class="magic-input w-full p-3 rounded text-sm" placeholder="gpt-5.2">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">图像模型</label>
+                            <input v-model="config.imageModel" class="magic-input w-full p-3 rounded text-sm" placeholder="gpt-image-1">
+                        </div>
+                    </div>
                 </div>
 
                 <div class="mt-8 flex justify-between">
-                    <button @click="step--" class="text-[#8a9a9a] hover:text-white text-sm px-4">返回</button>
-                    <button @click="nextStep" :disabled="!config.apiKey" class="game-btn px-8 py-2 bg-[#6fffe9] text-[#0a1111] font-bold tracking-wider">
-                        验证链接
-                    </button>
+                    <button @click="step--" class="text-xs text-[#8a9a9a] hover:text-white">中断连接</button>
+                    <button @click="nextStep" :disabled="!config.apiKey" class="game-btn px-8 py-2 bg-[#6fffe9] text-[#0a1111] font-bold">验证通过</button>
                 </div>
             </div>
 
             <!-- STEP 2: 任务简报 -->
-            <div v-else-if="step === 2" key="step2" class="game-container w-full max-w-lg p-8 rounded-xl text-center">
-                <div class="text-[#d4b778] text-xs font-bold tracking-widest mb-2 uppercase">Step 02 // Content</div>
-                <h2 class="text-2xl font-serif text-white mb-6">绘制演示蓝图</h2>
-                
+            <div v-else-if="step === 2" key="step2" class="game-container p-10 rounded-2xl w-full max-w-lg text-center space-y-6">
+                <div class="text-[var(--accent-gold)] text-xs font-bold tracking-widest uppercase">Step 02 // Mission</div>
+                <h2 class="text-2xl font-bold text-white" style="font-family: var(--sys-font-head)">输入生成指令</h2>
                 <div class="space-y-4 text-left">
                     <div>
-                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">核心议题 (Theme)</label>
-                        <textarea v-model="topic" class="magic-input w-full h-20 p-3 rounded text-base resize-none" placeholder="请输入演示文稿的主题..."></textarea>
+                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">核心议题</label>
+                        <textarea v-model="topic" class="magic-input w-full h-24 p-4 text-lg font-medium resize-none" placeholder="例如：2025年人工智能发展趋势..."></textarea>
                     </div>
                     <div>
                         <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block flex items-center gap-2">
-                            <span class="w-1.5 h-1.5 bg-[#6fffe9] rotate-45"></span>
-                            补充咒文 / 详细要求 (Requirements)
+                            <span class="w-1 h-1 bg-[var(--accent-cyan)] rounded-full"></span> 补充咒文
                         </label>
-                        <textarea v-model="additionalInfo" class="magic-input w-full h-24 p-3 rounded text-sm resize-none" placeholder="例如：需包含团队介绍、特别强调Q3增长数据、风格要幽默、包含竞争对手分析..."></textarea>
+                        <textarea v-model="additionalInfo" class="magic-input w-full h-20 p-3 text-xs resize-none" placeholder="例如：包含团队介绍、风格幽默、强调数据增长..."></textarea>
                     </div>
                 </div>
-
-                <div class="flex justify-between mt-8">
-                    <button @click="step--" class="text-[#8a9a9a] hover:text-white text-sm px-4">返回</button>
-                    <button @click="nextStep" :disabled="!topic.trim()" class="game-btn px-8 py-2 bg-[#d4b778] text-[#0a1111] font-bold tracking-wider">
-                        确认蓝图
+                <div class="flex justify-between items-center pt-4">
+                    <button @click="step--" class="text-xs text-[#8a9a9a] hover:text-white">返回</button>
+                    <button @click="generateOutline" :disabled="!topic.trim() || loading" class="game-btn px-8 py-2 bg-[var(--accent-gold)] text-[#0a1111] font-bold flex items-center gap-2">
+                        <v-icon v-if="loading" name="loader-2" class="animate-spin" :size="16"></v-icon>
+                        {{ loading ? '解析中...' : '生成大纲' }}
                     </button>
+                </div>
+                <div v-if="error" class="text-red-400 text-xs">{{ error }}</div>
+            </div>
+
+            <!-- STEP 3: 大纲确认 -->
+            <div v-else-if="step === 3" key="step3" class="game-container w-full max-w-4xl p-8 rounded-xl h-[75vh] flex flex-col">
+                <div class="flex justify-between items-center mb-6 shrink-0">
+                    <div>
+                        <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-widest uppercase">Step 03 // Structure</div>
+                        <h2 class="text-2xl font-bold text-white" style="font-family: var(--sys-font-head)">确认战术大纲</h2>
+                    </div>
+                    <button @click="addSlide" class="px-3 py-1 border border-[#6fffe9]/30 text-[#6fffe9] hover:bg-[#6fffe9]/10 rounded text-xs flex items-center gap-1 transition-colors">
+                        <v-icon name="plus" :size="14"></v-icon> 增援节点
+                    </button>
+                </div>
+                <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+                    <transition-group name="list">
+                        <div v-for="(item, index) in outline" :key="index" class="group flex items-start gap-4 p-4 bg-black/40 border border-white/5 rounded-lg hover:border-[var(--accent-gold)] transition-colors relative">
+                            <div class="text-[#8a9a9a] font-mono text-xs mt-2 w-6">0{{ index + 1 }}</div>
+                            <div class="flex-1 space-y-2">
+                                <input v-model="item.title" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-gold)] text-white font-bold text-sm outline-none">
+                                <textarea v-model="item.desc" rows="1" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-cyan)] text-[#8a9a9a] text-xs outline-none resize-none"></textarea>
+                            </div>
+                            <button @click="removeSlide(index)" class="opacity-0 group-hover:opacity-100 text-[#8a9a9a] hover:text-red-400 absolute top-2 right-2"><v-icon name="x" :size="14"></v-icon></button>
+                        </div>
+                    </transition-group>
+                </div>
+                <div class="mt-6 flex justify-between shrink-0 pt-4 border-t border-white/10">
+                    <button @click="step--" class="text-xs text-[#8a9a9a] hover:text-white">返回重置</button>
+                    <button @click="nextStep" class="game-btn px-8 py-2 bg-[var(--accent-cyan)] text-[#0a1111] font-bold">结构确认</button>
                 </div>
             </div>
 
-            <!-- STEP 3: 视觉校准 -->
-            <div v-else-if="step === 3" key="step3" class="game-container w-full max-w-lg p-8 rounded-xl text-center">
-                <div class="text-[#cc99cc] text-xs font-bold tracking-widest mb-2 uppercase">Step 03 // Style</div>
-                <h2 class="text-2xl font-serif text-white mb-6">演示风格调优</h2>
-                
-                <div class="grid grid-cols-2 gap-6 mb-6">
-                    <div class="text-left">
-                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">主题灵光 (配色)</label>
-                        <div class="flex items-center gap-3 bg-black/40 p-2 rounded border border-white/10">
-                            <input type="color" v-model="pptConfig.themeColor" class="h-8 w-12 cursor-pointer bg-transparent border-0 p-0">
-                            <span class="font-mono text-xs text-[#d4b778]">{{ pptConfig.themeColor }}</span>
+            <!-- STEP 4: 风格选择 (核心差异点) -->
+            <div v-else-if="step === 4" key="step4" class="w-full max-w-5xl h-[80vh] flex flex-col">
+                <div class="text-center mb-8">
+                    <h2 class="text-3xl font-bold text-white mb-2" style="font-family: var(--sys-font-head)">选择具象化模组</h2>
+                    <p class="text-[#8a9a9a] text-sm">系统 UI 保持魔法连接状态，但输出产物将适配目标维度的物理法则</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div v-for="(theme, key) in PPT_THEMES" :key="key" 
+                         @click="selectPptStyle(key)"
+                         class="style-card relative rounded-xl overflow-hidden group h-40 flex flex-col"
+                         :class="{ 'active': currentPptStyleKey === key }">
+                        <!-- 风格预览图 (模拟) -->
+                        <div class="flex-1 relative" :style="{background: theme.previewBg}">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-4">
+                                <div class="w-16 h-2 rounded mb-1" :style="{background: theme.colors.accent}"></div>
+                                <div class="w-10 h-2 rounded opacity-50" :style="{background: theme.colors.text}"></div>
+                            </div>
                         </div>
-                    </div>
-                    <div class="text-left">
-                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">幻灯片页数 ({{ pptConfig.pageCount }})</label>
-                        <input type="range" v-model.number="pptConfig.pageCount" min="4" max="12" class="w-full h-2 bg-white/10 rounded-full appearance-none accent-[#cc99cc] mt-3">
+                        <div class="p-3 bg-black/60 border-t border-white/10 flex justify-between items-center">
+                            <span class="text-xs font-bold text-[#e0e0e0]">{{ theme.name }}</span>
+                            <div class="w-2 h-2 rounded-full" :class="currentPptStyleKey === key ? 'bg-[var(--accent-gold)]' : 'bg-white/20'"></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="text-left mb-8">
-                    <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">背景底纹 (可选)</label>
-                    <label class="flex items-center justify-center gap-2 border border-dashed border-white/20 hover:border-[#cc99cc] p-3 rounded cursor-pointer transition-colors bg-black/20">
+                <div class="game-container p-6 rounded-xl flex flex-wrap gap-8 items-center justify-center mx-auto w-full max-w-3xl">
+                    <label class="flex items-center gap-2 cursor-pointer group">
+                        <div class="w-4 h-4 border border-[var(--border-light)] flex items-center justify-center rounded bg-black/40">
+                            <v-icon v-if="pptConfig.templateBg" name="check" :size="10" class="text-[var(--accent-gold)]"></v-icon>
+                        </div>
                         <input type="file" @change="handleBgUpload" class="hidden" accept="image/*">
-                        <v-icon :name="pptConfig.templateBg ? 'check' : 'upload'" :size="16" :class="pptConfig.templateBg ? 'text-green-400' : 'text-[#8a9a9a]'"></v-icon>
-                        <span class="text-xs text-[#ccc]">{{ pptConfig.templateBg ? '纹理已加载' : '上传图片文件' }}</span>
+                        <span class="text-xs text-[#8a9a9a] group-hover:text-white transition-colors">
+                            {{ pptConfig.templateBg ? '已加载自定义背景图' : '上传自定义背景图 (覆盖默认风格)' }}
+                        </span>
+                        <button v-if="pptConfig.templateBg" @click.stop="pptConfig.templateBg = null" class="ml-2 text-[10px] text-red-400 hover:underline">清除</button>
                     </label>
                 </div>
 
-                <div class="flex justify-between">
-                    <button @click="step--" class="text-[#8a9a9a] hover:text-white text-sm px-4">返回</button>
-                    <button @click="startGeneration" class="game-btn px-8 py-2 bg-gradient-to-r from-[#cc99cc] to-[#d4b778] text-[#0a1111] font-bold tracking-wider w-full ml-4 shadow-[0_0_20px_rgba(204,153,204,0.3)]">
+                <div class="flex justify-center gap-6 mt-auto">
+                    <button @click="step--" class="text-xs text-[#8a9a9a] hover:text-white py-3">返回调整</button>
+                    <button @click="startFullGeneration" class="game-btn launch-btn px-12 py-3 bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-cyan)] text-[#0a1111] text-lg font-bold shadow-[0_0_30px_rgba(212,183,120,0.3)]">
                         启动生成仪式
                     </button>
                 </div>
             </div>
 
-            <!-- STEP 4: 生成中 -->
-            <div v-else-if="step === 4" key="step4" class="text-center w-full max-w-md">
-                <div class="mb-4 font-mono text-[#6fffe9] text-sm h-6">
-                    > {{ generationLog }}<span class="typing-cursor"></span>
-                </div>
-                <!-- Progress Bar -->
-                <div class="w-full h-2 bg-[#0a1111] border border-[#333] rounded-full overflow-hidden relative">
-                    <div class="h-full progress-fill transition-all duration-300" :style="{width: progressWidth + '%'}"></div>
-                </div>
-                <div class="mt-2 flex justify-between text-[10px] text-[#444] font-mono">
-                    <span>PROCESSING</span>
-                    <span>{{ progressWidth }}%</span>
-                </div>
-            </div>
+            <!-- STEP 5: 生成结果 (预览视窗 - 左右两栏布局) -->
+            <div v-else-if="step === 5" key="step5" class="w-full h-full flex gap-4 p-4">
 
-            <!-- STEP 5: 结果页 (全息仪表盘) -->
-            <div v-else-if="step === 5" key="step5" class="result-view w-full h-full flex flex-col glass-panel rounded-xl overflow-hidden shadow-2xl border border-[#d4b778]/30">
-                <!-- Top Bar -->
-                <header class="h-14 border-b border-white/5 bg-black/40 flex items-center justify-between px-6 backdrop-blur-md">
-                    <div class="flex items-center gap-4">
-                        <button @click="step = 0" class="text-[#d4b778] hover:text-white transition-colors" title="重启系统"><v-icon name="plus-circle" :size="18"></v-icon></button>
-                        <div class="h-4 w-[1px] bg-white/10"></div>
-                        <span class="font-serif text-lg text-white tracking-widest font-bold truncate max-w-md">{{ topic }}</span>
-                    </div>
-                    <div class="flex gap-3">
-                        <button @click="step = 3" class="px-4 py-1.5 border border-white/10 rounded text-xs text-[#8a9a9a] hover:text-white hover:border-white/30 transition-all">调整风格</button>
-                        <button @click="exportPPT" class="game-btn px-6 py-1.5 bg-[#d4b778] text-[#0a1111] text-xs font-bold tracking-widest flex items-center gap-2">
-                            <v-icon name="download" :size="14"></v-icon> 导出 PPTX 文件
-                        </button>
-                    </div>
-                </header>
+                <!-- 左侧: 缩略图列表 -->
+                <div class="w-80 flex-shrink-0 flex flex-col gap-4">
+                    <div class="text-xs text-[var(--accent-gold)] font-bold tracking-wider uppercase">幻灯片列表</div>
 
-                <!-- Grid Content -->
-                <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                        <!-- Cover -->
-                        <div class="aspect-video glass-panel p-1 group slide-card rounded-lg relative overflow-hidden bg-black/40">
-                            <div class="absolute inset-0 z-0 opacity-30">
-                                <img v-if="pptConfig.templateBg" :src="pptConfig.templateBg" class="w-full h-full object-cover">
-                                <div v-else class="w-full h-full bg-gradient-to-br from-[#d4b778]/20 to-transparent"></div>
+                    <div class="flex-1 overflow-y-auto custom-scrollbar space-y-3 pr-2">
+                        <!-- 封面缩略图 -->
+                        <div @click="selectSlide(-1)"
+                             class="ppt-thumbnail group"
+                             :class="{active: uiState.selectedSlideIndex === -1}"
+                             :style="getPptPreviewStyle()">
+                            <div class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                                <div class="text-[8px] font-bold tracking-widest mb-2 opacity-60"
+                                     :style="{color: currentPptStyle.colors.accent, fontFamily: currentPptStyle.fonts.header}">
+                                    PRESENTATION
+                                </div>
+                                <h1 class="text-sm font-bold mb-2 leading-tight"
+                                    :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                    {{ topic }}
+                                </h1>
+                                <div class="w-12 h-0.5 mb-2" :style="{background: currentPptStyle.colors.accent}"></div>
+                                <p class="text-[7px] opacity-60" :style="{color: currentPptStyle.colors.text}">{{ new Date().toLocaleDateString() }}</p>
                             </div>
-                            <div class="relative z-10 w-full h-full flex flex-col items-center justify-center text-center p-4">
-                                <h1 class="text-2xl font-serif font-bold text-white mb-2">{{ topic }}</h1>
-                                <p class="text-[10px] text-[#d4b778] tracking-[0.3em]">{{ new Date().getFullYear() }} PRESENTATION</p>
-                            </div>
+                            <div class="absolute bottom-1 right-2 text-[8px] opacity-50" :style="{color: currentPptStyle.colors.text}">封面</div>
                         </div>
 
-                        <!-- Content Slides -->
-                        <div v-for="(slide, index) in slides" :key="index" class="aspect-video glass-panel relative group slide-card rounded-lg flex flex-col overflow-hidden bg-black/20">
-                            <div class="h-8 border-b border-white/5 flex justify-between items-center px-3 bg-white/[0.02]">
-                                <span class="text-[9px] text-[#6fffe9] font-mono">第 0{{ index + 1 }} 页</span>
-                                <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <button @click="openEditModal(index)" class="p-1 hover:text-[#d4b778]"><v-icon name="pencil" :size="12"></v-icon></button>
-                                    <button @click="regenerateSlide(index)" :disabled="slide.isRegenerating" class="p-1 hover:text-[#6fffe9]">
-                                        <v-icon :name="slide.isRegenerating ? 'loader' : 'refresh-cw'" :size="12" :class="slide.isRegenerating ? 'animate-spin' : ''"></v-icon>
-                                    </button>
-                                </div>
+                        <!-- 内容页缩略图 -->
+                        <div v-for="(slide, index) in slides" :key="index"
+                             @click="selectSlide(index)"
+                             class="ppt-thumbnail group relative"
+                             :class="{active: uiState.selectedSlideIndex === index}"
+                             :style="getPptPreviewStyle()">
+
+                            <!-- 简化的缩略图内容 -->
+                            <div class="absolute inset-0 p-3 flex flex-col">
+                                <h3 class="text-[10px] font-bold mb-1 truncate"
+                                    :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                    {{ slide.title }}
+                                </h3>
+                                <p class="text-[7px] opacity-70 line-clamp-3"
+                                   :style="{color: currentPptStyle.colors.text}">
+                                    {{ slide.content?.substring(0, 80) }}...
+                                </p>
                             </div>
-                            <div class="p-4 flex-1 relative flex flex-col">
-                                <h3 class="text-sm font-bold text-[#d4b778] mb-2 line-clamp-1">{{ slide.title }}</h3>
-                                
-                                <!-- Content Preview -->
-                                <div v-if="slide.layout === 'big-data'" class="flex-1 flex flex-col items-center justify-center">
-                                    <div class="text-3xl font-serif text-white font-bold">{{ slide.dataValue }}</div>
-                                    <div class="text-[8px] text-[#6fffe9] uppercase tracking-wider">{{ slide.dataLabel }}</div>
-                                </div>
-                                <div v-else class="flex gap-2 h-full">
-                                    <div class="flex-1 text-[10px] text-[#aaa] line-clamp-4 leading-relaxed">{{ slide.content }}</div>
-                                    <div v-if="slide.imgData" class="w-1/3 h-full bg-black/50 rounded overflow-hidden border border-white/10 relative group/img cursor-pointer" @click="openModal(slide.imgData)">
-                                        <img :src="`data:image/png;base64,${slide.imgData}`" class="w-full h-full object-cover">
-                                    </div>
-                                    <div v-else class="w-1/3 h-full border border-dashed border-white/10 rounded flex items-center justify-center cursor-pointer hover:border-[#6fffe9]" @click="generateImage(index)">
-                                        <v-icon :name="slide.imgLoading ? 'loader' : 'image-plus'" :size="16" class="text-[#444]" :class="slide.imgLoading ? 'animate-spin' : ''"></v-icon>
-                                    </div>
-                                </div>
+
+                            <div class="absolute bottom-1 left-2 text-[8px] opacity-30" :style="{color: currentPptStyle.colors.text}">
+                                {{ index + 1 }}
+                            </div>
+
+                            <!-- 布局类型标识 -->
+                            <div class="absolute top-1 right-1 text-[7px] px-1.5 py-0.5 rounded bg-black/60"
+                                 :style="{color: currentPptStyle.colors.accent}">
+                                {{ slide.layout }}
+                            </div>
+
+                            <!-- 生成中遮罩 -->
+                            <div v-if="slide.isGenerating" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-20">
+                                <v-icon name="loader-2" :size="16" class="text-[var(--accent-cyan)] animate-spin"></v-icon>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                <!-- 右侧: 大预览区域 -->
+                <div class="flex-1 flex flex-col items-center justify-center gap-4">
+                    <div class="flex items-center justify-between w-full max-w-4xl">
+                        <div class="text-xs text-[var(--accent-cyan)] font-bold tracking-wider uppercase">
+                            {{ currentSlide.isCover ? '封面预览' : `第 ${uiState.selectedSlideIndex + 1} 页预览` }}
+                        </div>
+
+                        <!-- 操作按钮 (仅内容页显示) -->
+                        <div v-if="!currentSlide.isCover && uiState.selectedSlideIndex >= 0" class="flex gap-2">
+                            <button @click="openEditModal(uiState.selectedSlideIndex)"
+                                    class="px-3 py-1.5 rounded bg-white/10 hover:bg-white/20 text-white text-xs flex items-center gap-1.5 transition-colors">
+                                <v-icon name="edit-3" :size="12"></v-icon> 编辑
+                            </button>
+                            <button @click="regenerateSlide(uiState.selectedSlideIndex)"
+                                    :disabled="currentSlide.isRegenerating"
+                                    class="px-3 py-1.5 rounded bg-[var(--accent-cyan)]/20 hover:bg-[var(--accent-cyan)]/30 text-[var(--accent-cyan)] text-xs flex items-center gap-1.5 transition-colors">
+                                <v-icon :name="currentSlide.isRegenerating ? 'loader' : 'refresh-cw'" :size="12" :class="currentSlide.isRegenerating?'animate-spin':''"></v-icon> 重新生成
+                            </button>
+                            <button @click="generateImage(uiState.selectedSlideIndex)"
+                                    :disabled="currentSlide.imgLoading"
+                                    class="px-3 py-1.5 rounded bg-[var(--accent-gold)]/20 hover:bg-[var(--accent-gold)]/30 text-[var(--accent-gold)] text-xs flex items-center gap-1.5 transition-colors">
+                                <v-icon :name="currentSlide.imgLoading ? 'loader' : 'image'" :size="12" :class="currentSlide.imgLoading?'animate-spin':''"></v-icon> 添加配图
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 大预览容器 -->
+                    <div class="ppt-large-preview" :style="getPptPreviewStyle()">
+                        <!-- 封面大预览 -->
+                        <div v-if="currentSlide.isCover" class="absolute inset-0 flex flex-col items-center justify-center p-16 text-center">
+                            <div class="text-xl font-bold tracking-widest mb-8 opacity-60"
+                                 :style="{color: currentPptStyle.colors.accent, fontFamily: currentPptStyle.fonts.header}">
+                                PRESENTATION
+                            </div>
+                            <h1 class="text-6xl font-bold mb-12 leading-tight px-8"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ topic }}
+                            </h1>
+                            <div class="w-40 h-1 mb-8" :style="{background: currentPptStyle.colors.accent}"></div>
+                            <p class="text-lg opacity-60" :style="{color: currentPptStyle.colors.text}">{{ new Date().toLocaleDateString() }}</p>
+                        </div>
+
+                        <!-- 经典布局大预览 -->
+                        <div v-else-if="currentSlide.layout === 'classic'" class="absolute inset-0 p-12 flex flex-col">
+                            <h3 class="text-4xl font-bold mb-8"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ currentSlide.title }}
+                            </h3>
+                            <div class="flex-1 flex gap-10">
+                                <div class="flex-1 flex flex-col gap-8">
+                                    <p class="text-xl leading-relaxed opacity-80"
+                                       :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.body}">
+                                        {{ currentSlide.content }}
+                                    </p>
+                                    <div v-if="currentSlide.items && currentSlide.items.length" class="space-y-4">
+                                        <div v-for="(item, i) in currentSlide.items" :key="i" class="flex items-start gap-3">
+                                            <span class="text-lg" :style="{color: currentPptStyle.colors.accent}">●</span>
+                                            <span class="text-lg leading-tight flex-1" :style="{color: currentPptStyle.colors.text}">{{ item }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div v-if="currentSlide.imgData" class="w-80 h-80 rounded overflow-hidden flex-shrink-0">
+                                    <img :src="`data:image/png;base64,${currentSlide.imgData}`" class="w-full h-full object-cover">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 大数据布局大预览 -->
+                        <div v-else-if="currentSlide.layout === 'big-data'" class="absolute inset-0 p-12 flex flex-col">
+                            <h3 class="text-4xl font-bold mb-8"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ currentSlide.title }}
+                            </h3>
+                            <div class="flex-1 flex flex-col items-center justify-center">
+                                <div class="text-9xl font-bold mb-8" :style="{color: currentPptStyle.colors.accent, fontFamily: currentPptStyle.fonts.header}">
+                                    {{ currentSlide.dataValue || '89%' }}
+                                </div>
+                                <div class="text-3xl mb-8 opacity-80" :style="{color: currentPptStyle.colors.text}">
+                                    {{ currentSlide.dataLabel || currentSlide.title }}
+                                </div>
+                                <p class="text-xl text-center px-32 leading-relaxed opacity-70"
+                                   :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.body}">
+                                    {{ currentSlide.content }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- 时间线布局大预览 -->
+                        <div v-else-if="currentSlide.layout === 'timeline'" class="absolute inset-0 p-12 flex flex-col">
+                            <h3 class="text-4xl font-bold mb-6"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ currentSlide.title }}
+                            </h3>
+                            <p v-if="currentSlide.content" class="text-lg mb-8 opacity-70" :style="{color: currentPptStyle.colors.text}">
+                                {{ currentSlide.content }}
+                            </p>
+                            <div v-if="currentSlide.items && currentSlide.items.length" class="flex-1 flex flex-col justify-center gap-6 pl-12">
+                                <div v-for="(item, i) in currentSlide.items" :key="i" class="flex items-start gap-6">
+                                    <div class="flex flex-col items-center">
+                                        <div class="w-6 h-6 rounded-full" :style="{background: currentPptStyle.colors.accent}"></div>
+                                        <div v-if="i < currentSlide.items.length - 1" class="w-1 h-16" :style="{background: currentPptStyle.colors.accent}"></div>
+                                    </div>
+                                    <span class="text-lg leading-tight flex-1 pt-1" :style="{color: currentPptStyle.colors.text}">{{ item }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 对比布局大预览 -->
+                        <div v-else-if="currentSlide.layout === 'comparison'" class="absolute inset-0 p-12 flex flex-col">
+                            <h3 class="text-4xl font-bold mb-6"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ currentSlide.title }}
+                            </h3>
+                            <p v-if="currentSlide.content" class="text-lg mb-8 opacity-70" :style="{color: currentPptStyle.colors.text}">
+                                {{ currentSlide.content }}
+                            </p>
+                            <div v-if="currentSlide.items && currentSlide.items.length" class="flex-1 flex gap-10">
+                                <div class="flex-1">
+                                    <div class="text-2xl font-bold mb-4" :style="{color: currentPptStyle.colors.accent}">
+                                        {{ currentSlide.leftTitle || '方案 A' }}
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div v-for="(item, i) in currentSlide.items.slice(0, Math.ceil(currentSlide.items.length/2))" :key="i" class="flex items-start gap-3">
+                                            <span class="text-lg" :style="{color: currentPptStyle.colors.accent}">●</span>
+                                            <span class="text-lg leading-tight" :style="{color: currentPptStyle.colors.text}">{{ item }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="w-px" :style="{background: currentPptStyle.colors.accent, opacity: 0.3}"></div>
+                                <div class="flex-1">
+                                    <div class="text-2xl font-bold mb-4" :style="{color: currentPptStyle.colors.accent}">
+                                        {{ currentSlide.rightTitle || '方案 B' }}
+                                    </div>
+                                    <div class="space-y-3">
+                                        <div v-for="(item, i) in currentSlide.items.slice(Math.ceil(currentSlide.items.length/2))" :key="i" class="flex items-start gap-3">
+                                            <span class="text-lg" :style="{color: currentPptStyle.colors.accent}">●</span>
+                                            <span class="text-lg leading-tight" :style="{color: currentPptStyle.colors.text}">{{ item }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 图片网格布局大预览 -->
+                        <div v-else-if="currentSlide.layout === 'image-grid'" class="absolute inset-0 p-12 flex flex-col">
+                            <h3 class="text-4xl font-bold mb-6"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ currentSlide.title }}
+                            </h3>
+                            <p v-if="currentSlide.content" class="text-lg mb-8 opacity-70" :style="{color: currentPptStyle.colors.text}">
+                                {{ currentSlide.content }}
+                            </p>
+                            <div class="flex-1 grid grid-cols-2 gap-6">
+                                <div v-for="i in 4" :key="i" class="border-2 border-dashed rounded flex items-center justify-center"
+                                     :style="{borderColor: currentPptStyle.colors.accent, opacity: 0.3}">
+                                    <v-icon name="image" :size="64" :style="{color: currentPptStyle.colors.text, opacity: 0.4}"></v-icon>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 图表布局大预览 -->
+                        <div v-else-if="currentSlide.layout === 'chart'" class="absolute inset-0 p-12 flex flex-col">
+                            <h3 class="text-4xl font-bold mb-6"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ currentSlide.title }}
+                            </h3>
+                            <p v-if="currentSlide.content" class="text-lg mb-8 opacity-70" :style="{color: currentPptStyle.colors.text}">
+                                {{ currentSlide.content }}
+                            </p>
+                            <div class="flex-1 border-2 border-dashed rounded flex items-center justify-center"
+                                 :style="{borderColor: currentPptStyle.colors.accent, opacity: 0.3}">
+                                <v-icon name="bar-chart-3" :size="128" :style="{color: currentPptStyle.colors.accent, opacity: 0.4}"></v-icon>
+                            </div>
+                        </div>
+
+                        <!-- 默认布局大预览 -->
+                        <div v-else class="absolute inset-0 p-12 flex flex-col">
+                            <h3 class="text-4xl font-bold mb-8"
+                                :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.header}">
+                                {{ currentSlide.title }}
+                            </h3>
+                            <p class="text-xl leading-relaxed opacity-80 flex-1"
+                               :style="{color: currentPptStyle.colors.text, fontFamily: currentPptStyle.fonts.body}">
+                                {{ currentSlide.content }}
+                            </p>
+                        </div>
+
+                        <!-- 生成中遮罩 -->
+                        <div v-if="currentSlide.isGenerating" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                            <v-icon name="loader-2" :size="64" class="text-[var(--accent-cyan)] animate-spin mb-4"></v-icon>
+                            <span class="text-2xl text-[var(--accent-cyan)]">正在生成内容...</span>
+                        </div>
+                    </div>
+                </div>
+
             </div>
 
         </transition>
 
-        <!-- Modals -->
-        <!-- Image Preview Modal -->
-        <div v-if="uiState.modalImg" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-8" @click="uiState.modalImg = null">
-            <div class="relative max-w-5xl max-h-full border border-[#d4b778]/50 p-1 bg-[#0a1111]">
-                <img :src="`data:image/png;base64,${uiState.modalImg}`" class="max-h-[85vh] block shadow-2xl">
+        <!-- 底部导航栏 (结果页时显示) -->
+        <div v-if="step === 5" class="fixed bottom-0 left-0 w-full p-4 bg-gradient-to-t from-black/90 to-transparent backdrop-blur-sm z-50 border-t border-white/10">
+            <div class="max-w-4xl mx-auto flex justify-between items-center">
+                <button @click="goBackToStyleSelection" class="text-xs text-[#8a9a9a] hover:text-white flex items-center gap-2">
+                    <v-icon name="chevron-left" :size="14"></v-icon> 返回调整风格
+                </button>
+                <button @click="exportPPT" class="game-btn px-10 py-3 bg-gradient-to-r from-[#d4b778] to-[#6fffe9] text-[#0a1111] font-bold text-lg flex items-center gap-3">
+                    <v-icon name="download" :size="18"></v-icon>
+                    导出具象化文件
+                </button>
             </div>
         </div>
 
-        <!-- Edit Modal -->
-        <div v-if="uiState.isEditing" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-            <div class="game-container w-full max-w-lg p-6 rounded-lg">
+        <!-- 图片预览模态框 -->
+        <div v-if="uiState.modalImg" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-md p-8" @click="uiState.modalImg = null">
+            <div class="relative p-1 border border-[var(--accent-gold)] bg-black shadow-[0_0_50px_rgba(212,183,120,0.3)]">
+                <img :src="`data:image/png;base64,${uiState.modalImg}`" class="max-h-[85vh] block">
+            </div>
+        </div>
+
+        <!-- 编辑内容模态框 -->
+        <div v-if="uiState.isEditing" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" @click.self="closeEditModal">
+            <div class="game-container w-full max-w-2xl p-6 rounded-lg max-h-[90vh] overflow-y-auto">
                 <div class="flex justify-between items-center mb-6">
-                    <span class="text-[#6fffe9] font-bold tracking-widest text-sm">重塑此页内容</span>
+                    <div>
+                        <span class="text-[#6fffe9] font-bold tracking-widest text-sm">重塑此页内容</span>
+                        <p class="text-[#8a9a9a] text-[10px] mt-1">编辑内容或使用AI重新生成</p>
+                    </div>
                     <button @click="closeEditModal"><v-icon name="x" :size="18" class="text-[#8a9a9a] hover:text-white"></v-icon></button>
                 </div>
+
                 <div class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <select v-model="editForm.layout" class="magic-input w-full h-9 px-2 rounded text-xs">
-                            <option value="classic">经典</option>
-                            <option value="big-data">数据</option>
-                            <option value="timeline">时序</option>
-                            <option value="comparison">对比</option>
+                    <!-- 布局选择 -->
+                    <div>
+                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">排版布局</label>
+                        <select v-model="editForm.layout" class="magic-input w-full h-10 px-3 rounded text-sm">
+                            <option value="classic">📄 经典布局 - 文本+列表+图片 (通用内容)</option>
+                            <option value="big-data">📊 大数据布局 - 突出数字展示 (统计数据)</option>
+                            <option value="timeline">⏱️ 时间线布局 - 流程步骤 (项目进度)</option>
+                            <option value="comparison">⚖️ 对比布局 - 左右两列 (方案对比)</option>
+                            <option value="image-grid">🖼️ 图片网格 - 多图展示 (案例集)</option>
+                            <option value="chart">📈 图表布局 - 数据可视化 (趋势分析)</option>
                         </select>
-                        <input v-model="editForm.title" class="magic-input w-full h-9 px-2 rounded text-xs">
                     </div>
+
+                    <!-- 标题 -->
+                    <div>
+                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">标题</label>
+                        <input v-model="editForm.title" class="magic-input w-full h-10 px-3 rounded text-sm" placeholder="幻灯片标题">
+                    </div>
+
+                    <!-- 大数据布局专用字段 -->
                     <div v-if="editForm.layout === 'big-data'" class="grid grid-cols-2 gap-4">
-                        <input v-model="editForm.dataValue" class="magic-input w-full h-8 px-2 rounded text-xs" placeholder="数值">
-                        <input v-model="editForm.dataLabel" class="magic-input w-full h-8 px-2 rounded text-xs" placeholder="标签">
+                        <div>
+                            <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">数值</label>
+                            <input v-model="editForm.dataValue" class="magic-input w-full h-10 px-3 rounded text-sm" placeholder="例如: 89%">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">标签</label>
+                            <input v-model="editForm.dataLabel" class="magic-input w-full h-10 px-3 rounded text-sm" placeholder="例如: 增长率">
+                        </div>
                     </div>
-                    <textarea v-model="editForm.content" rows="4" class="magic-input w-full p-3 rounded text-xs"></textarea>
-                    <textarea v-model="editForm.pointsStr" rows="3" class="magic-input w-full p-3 rounded text-xs" placeholder="列表项..."></textarea>
+
+                    <!-- 对比布局专用字段 -->
+                    <div v-if="editForm.layout === 'comparison'" class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">左侧标题</label>
+                            <input v-model="editForm.leftTitle" class="magic-input w-full h-10 px-3 rounded text-sm" placeholder="例如: 方案 A">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">右侧标题</label>
+                            <input v-model="editForm.rightTitle" class="magic-input w-full h-10 px-3 rounded text-sm" placeholder="例如: 方案 B">
+                        </div>
+                    </div>
+
+                    <!-- 内容 -->
+                    <div>
+                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">主要内容</label>
+                        <textarea v-model="editForm.content" rows="4" class="magic-input w-full p-3 rounded text-sm" placeholder="详细描述内容..."></textarea>
+                    </div>
+
+                    <!-- 列表项 -->
+                    <div>
+                        <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">列表项 (每行一项)</label>
+                        <textarea v-model="editForm.pointsStr" rows="3" class="magic-input w-full p-3 rounded text-sm" placeholder="第一项&#10;第二项&#10;第三项"></textarea>
+                    </div>
+
+                    <!-- 分隔线 -->
+                    <div class="border-t border-white/10 my-6"></div>
+
+                    <!-- AI 重新生成部分 -->
+                    <div class="bg-black/40 p-4 rounded border border-[var(--accent-cyan)]/30">
+                        <div class="flex items-center gap-2 mb-3">
+                            <v-icon name="sparkles" :size="14" class="text-[var(--accent-cyan)]"></v-icon>
+                            <span class="text-[var(--accent-cyan)] text-xs font-bold uppercase">AI 重新生成</span>
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block">自定义提示词 (可选)</label>
+                            <textarea
+                                v-model="editForm.customPrompt"
+                                rows="2"
+                                class="magic-input w-full p-3 rounded text-xs"
+                                placeholder="例如: 更专业的语气，添加数据支撑，侧重技术细节...&#10;留空则使用原始大纲重新生成"></textarea>
+                        </div>
+                        <button
+                            @click="regenerateSlideWithPrompt(uiState.editingIndex)"
+                            :disabled="slides[uiState.editingIndex]?.isRegenerating"
+                            class="game-btn w-full mt-3 px-4 py-2 bg-[var(--accent-cyan)] text-[#0a1111] text-xs font-bold flex items-center justify-center gap-2">
+                            <v-icon :name="slides[uiState.editingIndex]?.isRegenerating ? 'loader' : 'wand-2'" :size="14" :class="slides[uiState.editingIndex]?.isRegenerating ? 'animate-spin' : ''"></v-icon>
+                            {{ slides[uiState.editingIndex]?.isRegenerating ? '生成中...' : '使用AI重新生成' }}
+                        </button>
+                    </div>
                 </div>
+
+                <!-- 底部按钮 -->
                 <div class="mt-6 flex justify-end gap-3">
-                    <button @click="closeEditModal" class="px-4 py-2 text-xs text-[#8a9a9a] hover:text-white">取消</button>
-                    <button @click="saveEdit" class="game-btn px-6 py-2 bg-[#6fffe9] text-[#0a1111] text-xs font-bold">保存</button>
+                    <button @click="closeEditModal" class="px-6 py-2 text-xs text-[#8a9a9a] hover:text-white transition-colors">取消</button>
+                    <button @click="saveEdit" class="game-btn px-8 py-2 bg-[var(--accent-gold)] text-[#0a1111] text-sm font-bold">保存修改</button>
                 </div>
             </div>
         </div>
 
     </div>
 
+    <!-- ES Modules 入口 -->
+    <script type="module" src="js/main.js"></script>
+
     <script>
-        const { createApp, ref, reactive, watch, onMounted } = Vue;
-
-        const IconComponent = {
-            props: ['name', 'size'],
-            setup(props) {
-                const container = ref(null);
-                const updateIcon = () => {
-                    if (!container.value) return;
-                    container.value.innerHTML = '';
-                    const i = document.createElement('i');
-                    i.setAttribute('data-lucide', props.name);
-                    i.setAttribute('width', props.size || 16);
-                    i.setAttribute('height', props.size || 16);
-                    container.value.appendChild(i);
-                    if (typeof lucide !== 'undefined' && lucide.createIcons) {
-                        lucide.createIcons({ root: container.value, nameAttr: 'data-lucide' });
-                    }
-                };
-                onMounted(updateIcon);
-                watch(() => [props.name, props.size], updateIcon);
-                return { container };
-            },
-            template: `<span ref="container" class="inline-flex items-center"></span>`
-        };
-
-        createApp({
-            components: { 'v-icon': IconComponent },
-            setup() {
-                // State
-                const step = ref(0);
-                const progressWidth = ref(0);
-                const generationLog = ref("Waiting...");
-                
-                const uiState = reactive({ showApi: false, modalImg: null, isEditing: false, editingIndex: -1 });
-                const loading = ref(false);
-                const error = ref('');
-                const topic = ref('');
-                const additionalInfo = ref('');
-                const slides = ref([]);
-                
-                const editForm = reactive({ layout: 'classic', title: '', content: '', pointsStr: '', dataValue: '', dataLabel: '' });
-                const config = reactive({ baseUrl: 'https://api.openai.com/v1', apiKey: '', textModel: 'gpt-4o', imageModel: 'dall-e-3' });
-                const pptConfig = reactive({ themeColor: '#d4b778', bodyColor: '#e0e0e0', pageCount: 6, copyright: 'Fantasy System', templateBg: null });
-
-                // Init
-                onMounted(() => {
-                    initParticles();
-                    const c = localStorage.getItem('app_config_fantasy');
-                    const p = localStorage.getItem('app_ppt_config_fantasy');
-                    if(c) Object.assign(config, JSON.parse(c));
-                    if(p) Object.assign(pptConfig, JSON.parse(p));
-                });
-
-                watch(config, v => localStorage.setItem('app_config_fantasy', JSON.stringify(v)), {deep:true});
-                watch(pptConfig, v => localStorage.setItem('app_ppt_config_fantasy', JSON.stringify(v)), {deep:true});
-
-                // Interaction
-                const nextStep = () => { step.value++; };
-                
-                // Trigger Generation Flow
-                const startGeneration = async () => {
-                    step.value = 4;
-                    progressWidth.value = 0;
-                    generationLog.value = "Connecting to Creative Core...";
-                    
-                    // Simulated progress before real call
-                    const logs = ["Parsing Presentation Structure...", "Synthesizing Slide Content...", "Formatting Slide Layouts...", "Rendering Visual Elements..."];
-                    let logIdx = 0;
-                    const interval = setInterval(() => {
-                        if (progressWidth.value < 90) progressWidth.value += Math.random() * 5;
-                        if (Math.random() > 0.7 && logIdx < logs.length) {
-                            generationLog.value = logs[logIdx++];
-                        }
-                    }, 200);
-
-                    try {
-                        await generateOutlineLogic();
-                        clearInterval(interval);
-                        progressWidth.value = 100;
-                        generationLog.value = "Presentation Matrix Loaded.";
-                        setTimeout(() => { step.value = 5; }, 800);
-                    } catch (e) {
-                        clearInterval(interval);
-                        error.value = e.message;
-                        step.value = 3; // Go back
-                    }
-                };
-
-                // --- 鲁棒性 JSON 提取函数 ---
-                const parseAIResponse = (text) => {
-                    try {
-                        return JSON.parse(text);
-                    } catch (e) {
-                        const jsonBlock = text.match(/```json\s*([\s\S]*?)\s*```/i);
-                        if (jsonBlock) {
-                            try { return JSON.parse(jsonBlock[1]); } catch(e2){}
-                        }
-                        const arrayMatch = text.match(/\[[\s\S]*\]/);
-                        if (arrayMatch) {
-                            try { return JSON.parse(arrayMatch[0]); } catch(e3){}
-                        }
-                        const objMatch = text.match(/\{[\s\S]*\}/);
-                        if (objMatch) {
-                            try { return JSON.parse(objMatch[0]); } catch(e4){}
-                        }
-                        throw new Error("无法从 AI 响应中解析 JSON");
-                    }
-                };
-
-                // --- Core Logic ---
-                const generateOutlineLogic = async () => {
-                    if (!topic.value.trim()) throw new Error('Topic required');
-                    
-                    const cleanBaseUrl = config.baseUrl.replace(/\/$/, '');
-                    
-                    const SYSTEM_PROMPT = `
-你是一位资深的行业分析师。生成一份内容详实、专业、有数据的PPT大纲。
-风格：专业、深度、严谨。
-要求：
-1. **必须返回合法的纯 JSON 数组**，不要包含任何 markdown 标记（如 \`\`\`json），不要包含任何解释性文字。
-2. 'content' 字段必须包含一段 80-150 字的深入分析。
-3. 当使用 'big-data' 版式时，必须虚构具体的业务数据。
-4. 列表项 'items' 应该是“观点+论据”。
-5. 生成 ${pptConfig.pageCount} 页。
-6. layout 可选: "classic", "big-data", "timeline", "comparison".
-`;
-                    const userPrompt = `主题：${topic.value}\n补充要求：${additionalInfo.value || '无'}`;
-
-                    const res = await fetch(`${cleanBaseUrl}/chat/completions`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            model: config.textModel,
-                            messages: [
-                                { role: "system", content: SYSTEM_PROMPT }, 
-                                { role: "user", content: userPrompt }
-                            ],
-                            temperature: 0.7 
-                        })
-                    });
-                    const data = await res.json();
-                    if(data.error) throw new Error(data.error.message);
-                    
-                    const content = data.choices[0].message.content;
-                    const parsedData = parseAIResponse(content); 
-                    
-                    slides.value = parsedData.map(s => ({...s, imgData:null, imgLoading:false, isRegenerating:false}));
-                };
-
-                const handleBgUpload = (e) => {
-                    const file = e.target.files[0];
-                    if(!file) return;
-                    const reader = new FileReader();
-                    reader.onload = (ev) => pptConfig.templateBg = ev.target.result;
-                    reader.readAsDataURL(file);
-                };
-
-                const regenerateSlide = async (index) => {
-                    const slide = slides.value[index];
-                    slide.isRegenerating = true;
-                    try {
-                        const cleanBaseUrl = config.baseUrl.replace(/\/$/, '');
-                        const REGEN_SYSTEM_PROMPT = `
-你是一位 PPT 优化专家。你的任务是重写并优化指定的幻灯片内容。
-要求：
-1. **必须返回合法的纯 JSON 对象**，不要 markdown，不要废话。
-2. 内容必须更加详实、专业。
-3. JSON 格式必须包含: title, content, items, layout, dataValue (可选), dataLabel (可选)。
-`;
-                        const res = await fetch(`${cleanBaseUrl}/chat/completions`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                model: config.textModel,
-                                messages: [
-                                    { role: "system", content: REGEN_SYSTEM_PROMPT },
-                                    { role: "user", content: `请重写此页内容：${JSON.stringify(slide)}。主题为：${topic.value}。补充要求：${additionalInfo.value || '无'}` }
-                                ]
-                            })
-                        });
-                        const data = await res.json();
-                        const content = data.choices[0].message.content;
-                        const parsed = parseAIResponse(content);
-                        
-                        Object.assign(slide, parsed);
-                    } catch (e) { alert('重写失败: ' + e.message); } finally { slide.isRegenerating = false; }
-                };
-
-                const generateImage = async (index) => {
-                    const slide = slides.value[index];
-                    slide.imgLoading = true;
-                    try {
-                        const cleanBaseUrl = config.baseUrl.replace(/\/$/, '');
-                        const res = await fetch(`${cleanBaseUrl}/images/generations`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${config.apiKey}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                model: config.imageModel,
-                                prompt: `Fantasy game UI style background illustration, ethereal, magical, dark cyan and gold theme, elegant, abstract. Context: ${slide.title}`,
-                                n: 1, size: "1024x1024", response_format: "b64_json"
-                            })
-                        });
-                        const data = await res.json();
-                        if(data.error) throw new Error(data.error.message);
-                        const imgItem = data.data?.[0];
-                        if (imgItem.b64_json) slide.imgData = imgItem.b64_json;
-                        else if (imgItem.url) {
-                             const urlRes = await fetch(imgItem.url);
-                             const blob = await urlRes.blob();
-                             const reader = new FileReader();
-                             reader.onloadend = () => { slide.imgData = reader.result.split(',')[1]; };
-                             reader.readAsDataURL(blob);
-                        }
-                    } catch (e) { alert('配图生成失败: ' + e.message); } finally { slide.imgLoading = false; }
-                };
-
-                const openEditModal = (idx) => {
-                    uiState.editingIndex = idx;
-                    const s = slides.value[idx];
-                    Object.assign(editForm, {
-                        layout: s.layout || 'classic', title: s.title, content: s.content,
-                        pointsStr: (s.items || []).join('\n'), dataValue: s.dataValue||'', dataLabel: s.dataLabel||''
-                    });
-                    uiState.isEditing = true;
-                };
-                const closeEditModal = () => uiState.isEditing = false;
-                const saveEdit = () => {
-                    const s = slides.value[uiState.editingIndex];
-                    Object.assign(s, {
-                        layout: editForm.layout, title: editForm.title, content: editForm.content,
-                        items: editForm.pointsStr.split('\n').filter(x=>x.trim()),
-                        dataValue: editForm.dataValue, dataLabel: editForm.dataLabel
-                    });
-                    closeEditModal();
-                };
-
-                const exportPPT = () => {
-                    const pptx = new PptxGenJS();
-                    pptx.layout = 'LAYOUT_16x9';
-                    
-                    // 颜色常量
-                    const bgDark = "0a1111";
-                    const textMain = "e0e0e0";
-                    const textDim = "8a9a9a";
-                    const gold = pptConfig.themeColor.replace('#', '');
-                    const cyan = "6fffe9";
-
-                    // 母版定义
-                    const masterOpts = {
-                        title: "FANTASY_MASTER",
-                        background: pptConfig.templateBg ? { data: pptConfig.templateBg } : { color: bgDark },
-                        objects: [
-                            // 顶部金色线条
-                            { rect: { x: 0, y: 0, w: "100%", h: 0.05, fill: { color: gold } } },
-                            // 底部青色线条
-                            { rect: { x: 0, y: 5.575, w: "100%", h: 0.05, fill: { color: cyan } } },
-                            // 角落装饰 (左上)
-                            { rect: { x: 0.2, y: 0.2, w: 0.05, h: 0.5, fill: { color: gold } } },
-                            { rect: { x: 0.2, y: 0.2, w: 0.5, h: 0.05, fill: { color: gold } } },
-                            // 角落装饰 (右下)
-                            { rect: { x: 9.75, y: 5.375, w: 0.05, h: 0.25, fill: { color: cyan } } },
-                            { rect: { x: 9.5, y: 5.575, w: 0.3, h: 0.05, fill: { color: cyan } } }
-                        ]
-                    };
-                    pptx.defineSlideMaster(masterOpts);
-
-                    // 1. 封面页
-                    const cover = pptx.addSlide();
-                    if(pptConfig.templateBg) cover.background = { data: pptConfig.templateBg };
-                    else cover.background = { color: bgDark };
-
-                    // 封面中心装饰框 (半透明)
-                    cover.addShape('rect', { x: 2.0, y: 1.5, w: 6.0, h: 2.625, line: { color: gold, width: 1.5 }, fill: { color: "000000", transparency: 60 } });
-                    // 四角点缀
-                    cover.addShape('rect', { x: 1.9, y: 1.4, w: 0.1, h: 0.1, fill: { color: gold } });
-                    cover.addShape('rect', { x: 8.0, y: 4.125, w: 0.1, h: 0.1, fill: { color: gold } });
-
-                    cover.addText("PORTFOLIO / PRESENTATION", { x: 2.0, y: 1.8, w: 6.0, fontSize: 10, color: gold, align: "center", charSpacing: 3, fontFace: "Arial Black" });
-                    cover.addText(topic.value, { x: 2.2, y: 2.2, w: 5.6, fontSize: 36, bold: true, color: "FFFFFF", align: "center", fontFace: "Microsoft YaHei" });
-                    
-                    // 封面中间的菱形装饰
-                    cover.addShape('rect', { x: 4.9, y: 3.5, w: 0.2, h: 0.2, fill: { color: gold }, rotate: 45 });
-
-                    cover.addText(new Date().toLocaleDateString(), { x: 2.0, y: 3.8, w: 6.0, fontSize: 12, color: cyan, align: "center", fontFace: "Courier New" });
-
-                    // 2. 内容页循环
-                    slides.value.forEach((s, i) => {
-                        const slide = pptx.addSlide({ masterName: "FANTASY_MASTER" });
-                        
-                        // 页码
-                        slide.addText(`0${i+1}`, { x:0.25, y:0.4, fontSize:12, color:gold, charSpacing:2, fontFace: "Arial Black" });
-                        
-                        // 标题栏装饰线
-                        slide.addShape('line', { x: 0.8, y: 0.7, w: 8.8, h: 0, line: { color: "333333", width: 1 } });
-                        // 标题
-                        slide.addText(s.title, { x: 0.8, y: 0.25, w: 8.8, fontSize: 20, bold: true, color: textMain, fontFace: "Microsoft YaHei" });
-
-                        // Layouts
-                        if (s.layout === 'big-data') {
-                            // Big Data Background Box
-                            slide.addShape('rect', { x: 1.5, y: 1.2, w: 7.0, h: 3.5, fill: { color: "111111", transparency: 60 }, line: { color: "333333" } });
-                            
-                            slide.addText(s.dataValue || '0%', { x: 1.5, y: 2.0, w: 7.0, align: 'center', fontSize: 60, bold: true, color: gold, fontFace:"Arial Black", shadow: { type: 'outer', color: gold, blur: 10, offset: 2, angle: 45 } });
-                            slide.addText(s.dataLabel || 'METRIC', { x: 1.5, y: 3.2, w: 7.0, align: 'center', fontSize: 16, color: cyan, charSpacing: 4, fontFace: "Microsoft YaHei" });
-                            slide.addText(s.content, { x: 2.5, y: 3.8, w: 5.0, align: 'center', fontSize: 12, color: textDim, fontFace: "Microsoft YaHei" });
-                        }
-                        else if (s.layout === 'timeline') {
-                            slide.addText(s.content, { x: 0.5, y: 1.0, w: 9.0, h: 0.8, fontSize: 12, color: textColor, fontFace: "Microsoft YaHei" });
-                            
-                            // Line
-                            slide.addShape('line', { x: 1.0, y: 3.0, w: 8.0, h: 0, line: { color: themeColor, width: 2 } });
-                            
-                            (s.items || []).slice(0,4).forEach((item, idx) => {
-                                const xPos = 1.0 + (idx * 2.2);
-                                // Diamond Node
-                                slide.addShape('rect', { x: xPos + 0.9, y: 2.85, w: 0.3, h: 0.3, fill: { color: accentCyan }, rotate: 45 });
-                                const parts = item.split(/[:：]/);
-                                slide.addText(parts[0] || `Step ${idx+1}`, { x: xPos, y: 2.4, w: 2.0, align: 'center', fontSize: 11, bold: true, color: themeColor, fontFace: "Microsoft YaHei" });
-                                slide.addText(parts[1] || item, { x: xPos, y: 3.3, w: 2.0, align: 'center', fontSize: 10, color: secColor, fontFace: "Microsoft YaHei" });
-                            });
-                        }
-                        else if (s.layout === 'comparison') {
-                            // Left Box
-                            slide.addShape('rect', { x: 0.5, y: 1.5, w: 4.25, h: 3.5, line: { color: "444444" }, fill: { color: "111111", transparency:50 } });
-                            slide.addText("PRESENT", { x: 0.7, y: 1.7, fontSize: 10, color: secColor, charSpacing:2, fontFace: "Arial Black" });
-                            slide.addText(s.content, { x: 0.7, y: 2.0, w: 3.85, fontSize: 12, color: textColor, fontFace: "Microsoft YaHei" });
-
-                            // Right Box (Accent Border)
-                            slide.addShape('rect', { x: 5.25, y: 1.5, w: 4.25, h: 3.5, line: { color: themeColor }, fill: { color: "111111", transparency:50 } });
-                            // Decorative corner
-                            slide.addShape('rect', { x: 9.35, y: 1.5, w: 0.15, h: 0.15, fill: { color: themeColor } });
-                            
-                            slide.addText("FUTURE", { x: 5.45, y: 1.7, fontSize: 10, color: themeColor, charSpacing:2, fontFace: "Arial Black" });
-                            
-                            (s.items || []).forEach((item, idx) => {
-                                slide.addText(item, { 
-                                    x: 5.45, y: 2.0 + (idx*0.5), w: 3.85, 
-                                    fontSize: 12, color: textMain, bullet: { code: "25C6", color: accentCyan }, fontFace: "Microsoft YaHei" 
-                                });
-                            });
-                        }
-                        else {
-                            // Standard Layout
-                            const textW = s.imgData ? 4.5 : 9.0;
-                            // Content Box Background (optional visual aid)
-                            // slide.addShape('rect', { x: 0.5, y: 1.2, w: textW, h: 4.0, fill: { color: "111111", transparency: 80 } });
-                            
-                            slide.addText(s.content, { x: 0.5, y: 1.0, w: textW, h: 1.2, fontSize: 14, color: textColor, align: "justify", fontFace: "Microsoft YaHei" });
-                            
-                            (s.items||[]).forEach((p, idx) => {
-                                slide.addText(p, { x: 0.5, y: 2.4 + (idx*0.5), w: textW, fontSize: 12, color: textColor, bullet: { code: "25C6", color: themeColor }, fontFace: "Microsoft YaHei" });
-                            });
-
-                            if (s.imgData) {
-                                // Image Frame
-                                slide.addShape('rect', { x: 5.2, y: 1.2, w: 4.3, h: 3.5, line: { color: themeColor, width: 1 } });
-                                slide.addImage({ data: `image/png;base64,${s.imgData}`, x: 5.25, y: 1.25, w: 4.2, h: 3.4, sizing: { type: "cover", w: 4.2, h: 3.4 } });
-                            }
-                        }
-                    });
-
-                    pptx.writeFile({ fileName: `Fantasy-Deck-${Date.now()}.pptx` });
-                };
-
-                // Particle Logic (same as before)
-                function initParticles() {
-                    const canvas = document.getElementById('particle-canvas');
-                    const ctx = canvas.getContext('2d');
-                    let width, height;
-                    const particles = [];
-                    function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
-                    window.addEventListener('resize', resize);
-                    resize();
-                    class Particle {
-                        constructor() { this.reset(); }
-                        reset() {
-                            this.x = Math.random() * width; this.y = Math.random() * height;
-                            this.vx = (Math.random() - 0.5) * 0.5; this.vy = (Math.random() - 0.5) * 0.5;
-                            this.size = Math.random() * 2; this.alpha = Math.random() * 0.5;
-                        }
-                        update() {
-                            this.x += this.vx; this.y += this.vy;
-                            if (this.x < 0 || this.x > width || this.y < 0 || this.y > height) this.reset();
-                        }
-                        draw() {
-                            ctx.fillStyle = `rgba(212, 183, 120, ${this.alpha})`;
-                            ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
-                        }
-                    }
-                    for(let i=0; i<80; i++) particles.push(new Particle());
-                    function animate() { ctx.clearRect(0,0,width,height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animate); }
-                    animate();
-                }
-
-                return { 
-                    step, nextStep, startGeneration, progressWidth, generationLog,
-                    uiState, loading, error, topic, additionalInfo, slides, config, pptConfig, editForm, 
-                    handleBgUpload, regenerateSlide, generateImage, openEditModal, closeEditModal, saveEdit, exportPPT 
-                };
-            }
-        }).mount('#app');
+        // JavaScript 代码已模块化至 js/ 目录
+        // 主题配置: js/config/themes.js
+        // 主入口: js/main.js (ES Module)
     </script>
 </body>
 </html>

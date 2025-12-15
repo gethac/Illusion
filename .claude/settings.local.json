@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir /b:*)",
+      "Bash(start /min cmd /c \"python -m http.server 8080\")",
+      "Bash(timeout /t 2)",
+      "Bash(git add:*)"
+    ]
+  }
+}
