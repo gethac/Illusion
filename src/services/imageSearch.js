@@ -6,24 +6,17 @@
 import axios from 'axios'
 
 /**
- * Unsplash图片搜索配置
- * 需要在 https://unsplash.com/developers 注册获取Access Key
- */
-const UNSPLASH_ACCESS_KEY = 'YOUR_UNSPLASH_ACCESS_KEY' // 用户需要配置
-
-/**
- * Pexels图片搜索配置
- * 需要在 https://www.pexels.com/api/ 注册获取API Key
- */
-const PEXELS_API_KEY = 'YOUR_PEXELS_API_KEY' // 用户需要配置
-
-/**
  * 从Unsplash搜索图片
  * @param {string} query - 搜索关键词（英文）
+ * @param {string} accessKey - Unsplash Access Key
  * @param {number} perPage - 每页数量
  * @returns {Promise<Array>} 图片列表
  */
-export async function searchUnsplashImages(query, perPage = 10) {
+export async function searchUnsplashImages(query, accessKey, perPage = 10) {
+  if (!accessKey || accessKey === 'YOUR_UNSPLASH_ACCESS_KEY') {
+    throw new Error('Unsplash Access Key未配置，请在Step 1配置中设置')
+  }
+
   try {
     const response = await axios.get('https://api.unsplash.com/search/photos', {
       params: {
@@ -32,7 +25,7 @@ export async function searchUnsplashImages(query, perPage = 10) {
         orientation: 'landscape' // 横向图片，适合PPT
       },
       headers: {
-        'Authorization': `Client-ID ${UNSPLASH_ACCESS_KEY}`
+        'Authorization': `Client-ID ${accessKey}`
       }
     })
 
@@ -49,19 +42,24 @@ export async function searchUnsplashImages(query, perPage = 10) {
   } catch (error) {
     console.error('Unsplash搜索失败:', error)
     if (error.response?.status === 401) {
-      throw new Error('Unsplash API密钥无效，请在配置中设置正确的Access Key')
+      throw new Error('Unsplash Access Key无效，请检查配置中的Access Key')
     }
-    throw new Error('图片搜索失败，请稍后重试')
+    throw new Error('图片搜索失败: ' + (error.response?.data?.errors?.[0] || error.message))
   }
 }
 
 /**
  * 从Pexels搜索图片
  * @param {string} query - 搜索关键词（英文）
+ * @param {string} apiKey - Pexels API Key
  * @param {number} perPage - 每页数量
  * @returns {Promise<Array>} 图片列表
  */
-export async function searchPexelsImages(query, perPage = 10) {
+export async function searchPexelsImages(query, apiKey, perPage = 10) {
+  if (!apiKey || apiKey === 'YOUR_PEXELS_API_KEY') {
+    throw new Error('Pexels API Key未配置，请在Step 1配置中设置')
+  }
+
   try {
     const response = await axios.get('https://api.pexels.com/v1/search', {
       params: {
@@ -70,7 +68,7 @@ export async function searchPexelsImages(query, perPage = 10) {
         orientation: 'landscape'
       },
       headers: {
-        'Authorization': PEXELS_API_KEY
+        'Authorization': apiKey
       }
     })
 
@@ -86,42 +84,49 @@ export async function searchPexelsImages(query, perPage = 10) {
     }))
   } catch (error) {
     console.error('Pexels搜索失败:', error)
-    if (error.response?.status === 401) {
-      throw new Error('Pexels API密钥无效，请在配置中设置正确的API Key')
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      throw new Error('Pexels API Key无效，请检查配置中的API Key')
     }
-    throw new Error('图片搜索失败，请稍后重试')
+    throw new Error('图片搜索失败: ' + (error.message))
   }
 }
 
 /**
  * 统一搜索接口（自动选择可用的服务）
  * @param {string} query - 搜索关键词
+ * @param {Object} apiKeys - API密钥对象 { unsplashApiKey, pexelsApiKey }
  * @param {string} source - 图片源 ('auto', 'unsplash', 'pexels')
  * @returns {Promise<Array>} 图片列表
  */
-export async function searchWebImages(query, source = 'auto') {
+export async function searchWebImages(query, apiKeys = {}, source = 'auto') {
   // 如果查询为空，返回空数组
   if (!query || !query.trim()) {
     return []
   }
 
+  const { unsplashApiKey, pexelsApiKey } = apiKeys
+
   try {
     // 自动选择：优先Unsplash，失败则尝试Pexels
     if (source === 'auto' || source === 'unsplash') {
-      try {
-        return await searchUnsplashImages(query)
-      } catch (error) {
-        console.warn('Unsplash失败，尝试Pexels:', error.message)
-        if (source === 'unsplash') throw error
-        // 如果是auto模式，继续尝试Pexels
+      if (unsplashApiKey && unsplashApiKey !== 'YOUR_UNSPLASH_ACCESS_KEY') {
+        try {
+          return await searchUnsplashImages(query, unsplashApiKey)
+        } catch (error) {
+          console.warn('Unsplash失败，尝试Pexels:', error.message)
+          if (source === 'unsplash') throw error
+          // 如果是auto模式，继续尝试Pexels
+        }
       }
     }
 
     if (source === 'auto' || source === 'pexels') {
-      return await searchPexelsImages(query)
+      if (pexelsApiKey && pexelsApiKey !== 'YOUR_PEXELS_API_KEY') {
+        return await searchPexelsImages(query, pexelsApiKey)
+      }
     }
 
-    throw new Error(`不支持的图片源: ${source}`)
+    throw new Error('未配置任何图片搜索API密钥，请在Step 1配置中设置Unsplash或Pexels API Key')
   } catch (error) {
     console.error('网络图片搜索失败:', error)
     throw error
@@ -211,15 +216,16 @@ export async function generateSearchKeywords(slideTitle, slideContent, config) {
 
 /**
  * 检查API密钥是否已配置
+ * @param {Object} apiKeys - API密钥对象 { unsplashApiKey, pexelsApiKey }
  * @param {string} source - 图片源
  * @returns {boolean}
  */
-export function hasApiKey(source) {
+export function hasApiKey(apiKeys, source) {
   if (source === 'unsplash') {
-    return UNSPLASH_ACCESS_KEY && UNSPLASH_ACCESS_KEY !== 'YOUR_UNSPLASH_ACCESS_KEY'
+    return apiKeys.unsplashApiKey && apiKeys.unsplashApiKey !== 'YOUR_UNSPLASH_ACCESS_KEY'
   }
   if (source === 'pexels') {
-    return PEXELS_API_KEY && PEXELS_API_KEY !== 'YOUR_PEXELS_API_KEY'
+    return apiKeys.pexelsApiKey && apiKeys.pexelsApiKey !== 'YOUR_PEXELS_API_KEY'
   }
   return false
 }

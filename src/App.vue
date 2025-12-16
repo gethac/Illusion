@@ -86,13 +86,30 @@
                 <Icon name="key" :size="12"/>
                 可选：网络搜图 API 密钥
               </div>
-              <div>
-                <label class="text-[10px] text-[#8a9a9a] mb-1 block">Unsplash API Key <span class="text-[9px] opacity-50">(50次/小时)</span></label>
-                <input v-model="configStore.unsplashApiKey" type="password" class="magic-input w-full p-2 rounded text-xs" placeholder="可选">
+              <div class="text-[9px] text-[#6fffe9] mb-2">
+                💡 配置后可使用"网络搜图"功能，无需消耗OpenAI图像额度
               </div>
               <div>
-                <label class="text-[10px] text-[#8a9a9a] mb-1 block">Pexels API Key <span class="text-[9px] opacity-50">(200次/小时)</span></label>
+                <label class="text-[10px] text-[#8a9a9a] mb-1 block flex items-center gap-2">
+                  <Icon name="image" :size="10"/>
+                  Unsplash Access Key <span class="text-[9px] opacity-50">(50次/小时，免费)</span>
+                </label>
+                <input v-model="configStore.unsplashApiKey" type="password" class="magic-input w-full p-2 rounded text-xs" placeholder="填写 Access Key（不是Secret key）">
+                <div class="text-[8px] text-[#8a9a9a] mt-1 flex items-center gap-1">
+                  <Icon name="info" :size="8"/>
+                  注册地址：unsplash.com/developers → 使用 Access Key
+                </div>
+              </div>
+              <div>
+                <label class="text-[10px] text-[#8a9a9a] mb-1 block flex items-center gap-2">
+                  <Icon name="image" :size="10"/>
+                  Pexels API Key <span class="text-[9px] opacity-50">(200次/小时，免费)</span>
+                </label>
                 <input v-model="configStore.pexelsApiKey" type="password" class="magic-input w-full p-2 rounded text-xs" placeholder="可选">
+                <div class="text-[8px] text-[#8a9a9a] mt-1 flex items-center gap-1">
+                  <Icon name="info" :size="8"/>
+                  注册地址：pexels.com/api
+                </div>
               </div>
             </div>
           </div>
@@ -348,7 +365,9 @@
                         apiKey: configStore.apiKey,
                         textModel: configStore.textModel,
                         imageModel: configStore.imageModel,
-                        imageSource: configStore.imageSource
+                        imageSource: configStore.imageSource,
+                        unsplashApiKey: configStore.unsplashApiKey,
+                        pexelsApiKey: configStore.pexelsApiKey
                       }"
                       :outline="presentationStore.outline"
                       :is-generating="presentationStore.isGenerating"
@@ -563,7 +582,9 @@ const startFullGeneration = async () => {
     baseUrl: configStore.baseUrl,
     apiKey: configStore.apiKey,
     textModel: configStore.textModel,
-    imageModel: configStore.imageModel
+    imageModel: configStore.imageModel,
+    unsplashApiKey: configStore.unsplashApiKey,
+    pexelsApiKey: configStore.pexelsApiKey
   }
 
   // 初始化幻灯片

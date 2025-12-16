@@ -61,8 +61,14 @@ export async function searchSlideImages(slideTitle, slideContent, config, source
     const keywords = await generateSearchKeywords(slideTitle, slideContent, config);
     console.log('生成的搜索关键词:', keywords);
 
+    // 准备API密钥
+    const apiKeys = {
+        unsplashApiKey: config.unsplashApiKey,
+        pexelsApiKey: config.pexelsApiKey
+    };
+
     // 搜索图片
-    const images = await searchWebImages(keywords, source);
+    const images = await searchWebImages(keywords, apiKeys, source);
     return images;
 }
 
