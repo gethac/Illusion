@@ -12,8 +12,18 @@
         </div>
       </div>
 
+      <!-- 生成进度条（生成中显示） -->
+      <div v-if="isGenerating" class="flex-1 max-w-md mx-8">
+        <div class="text-[var(--accent-cyan)] text-xs mb-1">{{ generationLog }}</div>
+        <div class="h-1.5 bg-black/60 rounded-full overflow-hidden">
+          <div class="progress-fill h-full rounded-full transition-all duration-300"
+               :style="{ width: `${generationProgress}%` }"></div>
+        </div>
+      </div>
+
       <button @click="$emit('export')"
-              class="game-btn px-6 py-2 bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-cyan)] text-[#0a1111] font-bold flex items-center gap-2">
+              :disabled="isGenerating"
+              class="game-btn px-6 py-2 bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-cyan)] text-[#0a1111] font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
         <Icon name="download" :size="16"/>
         导出 PPT
       </button>
@@ -42,12 +52,24 @@
         <!-- 内容页缩略图 -->
         <div v-for="(slide, index) in slides" :key="index"
              @click="selectSlide(index)"
-             class="thumbnail-card rounded-lg overflow-hidden cursor-pointer transition-all"
-             :class="{ 'ring-2 ring-[var(--accent-gold)]': selectedIndex === index }">
+             class="thumbnail-card rounded-lg overflow-hidden cursor-pointer transition-all relative"
+             :class="{
+               'ring-2 ring-[var(--accent-gold)]': selectedIndex === index,
+               'opacity-60': slide.isGenerating
+             }">
+          <!-- 生成状态图标 -->
+          <div v-if="slide.isGenerating" class="absolute top-1 right-1 z-10">
+            <Icon name="loader-2" :size="14" class="text-[var(--accent-cyan)] animate-spin"/>
+          </div>
+          <div v-else class="absolute top-1 right-1 z-10">
+            <Icon name="check-circle" :size="14" class="text-green-400"/>
+          </div>
+
           <div class="aspect-video bg-black/60 p-3 flex flex-col">
             <div class="text-white text-[10px] font-bold mb-1 truncate">{{ slide.title }}</div>
-            <div class="text-[#8a9a9a] text-[8px] line-clamp-3">{{ slide.content }}</div>
-            <div v-if="slide.items && slide.items.length" class="mt-auto">
+            <div v-if="!slide.isGenerating" class="text-[#8a9a9a] text-[8px] line-clamp-3">{{ slide.content }}</div>
+            <div v-else class="text-[var(--accent-cyan)] text-[8px]">生成中...</div>
+            <div v-if="slide.items && slide.items.length && !slide.isGenerating" class="mt-auto">
               <div v-for="i in Math.min(2, slide.items.length)" :key="i"
                    class="text-[#6fffe9] text-[7px] flex items-center gap-1">
                 <div class="w-1 h-1 rounded-full bg-[var(--accent-gold)]"></div>
@@ -246,7 +268,10 @@ const props = defineProps({
   slides: Array,
   theme: Object,
   config: Object,
-  outline: Array
+  outline: Array,
+  isGenerating: Boolean,
+  generationProgress: Number,
+  generationLog: String
 })
 
 const emit = defineEmits(['back', 'export', 'update-slide'])

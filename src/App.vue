@@ -246,72 +246,26 @@
           </div>
         </div>
 
-        <!-- STEP 5: 生成中或完整预览 -->
-        <div v-else-if="step === 5" key="step5" class="w-full h-full">
-          <!-- 正在生成时显示进度 -->
-          <div v-if="presentationStore.isGenerating"
-               class="w-full h-full flex flex-col items-center justify-center gap-4">
-            <div class="text-center">
-              <h2 class="text-3xl font-bold text-white mb-2">正在生成演示文稿</h2>
-              <p class="text-[#8a9a9a] text-sm mb-8">
-                {{ presentationStore.generationLog }}
-              </p>
-
-              <!-- 进度条 -->
-              <div class="w-96 h-2 bg-black/60 rounded-full overflow-hidden">
-                <div class="progress-fill h-full rounded-full transition-all duration-500"
-                     :style="{ width: `${presentationStore.generationProgress}%` }"></div>
-              </div>
-
-              <!-- 已生成的幻灯片列表 -->
-              <div v-if="presentationStore.slides.length > 0" class="mt-8 max-w-4xl mx-auto">
-                <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-wider uppercase mb-4">已生成幻灯片</div>
-                <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
-                  <div v-for="(slide, index) in presentationStore.slides" :key="index"
-                       class="p-4 bg-black/40 border border-white/10 rounded-lg hover:border-white/20 transition-colors">
-                    <div class="flex items-start gap-3 mb-2">
-                      <Icon v-if="slide.isGenerating" name="loader-2" :size="16" class="text-[var(--accent-cyan)] animate-spin mt-1"/>
-                      <Icon v-else name="check" :size="16" class="text-green-400 mt-1"/>
-                      <div class="flex-1">
-                        <div class="text-white text-sm font-bold">{{ slide.title }}</div>
-                        <div class="text-[#8a9a9a] text-xs">{{ slide.layout }}</div>
-                      </div>
-                    </div>
-
-                    <!-- 图表预览 -->
-                    <div v-if="slide.layout === 'chart' && slide.chartData && slide.chartType"
-                         class="mt-3 bg-black/60 rounded p-4 border border-[var(--accent-cyan)]/20">
-                      <Chart
-                        :chartType="slide.chartType"
-                        :chartData="slide.chartData"
-                        :theme="themes[presentationStore.currentThemeKey]"
-                        class="h-48"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 生成完成后显示完整预览 -->
-          <SlidePreview v-else
-                        :topic="presentationStore.topic"
-                        :slides="presentationStore.slides"
-                        :theme="themes[presentationStore.currentThemeKey]"
-                        :config="{
-                          baseUrl: configStore.baseUrl,
-                          apiKey: configStore.apiKey,
-                          textModel: configStore.textModel,
-                          imageModel: configStore.imageModel,
-                          imageSource: configStore.imageSource
-                        }"
-                        :outline="presentationStore.outline"
-                        @back="prevStep"
-                        @export="handleExportPPT"
-                        @update-slide="handleUpdateSlide"
-          />
-        </div>
+        <!-- STEP 5: 预览界面（统一显示生成中和完成状态） -->
+        <SlidePreview v-else-if="step === 5" key="step5"
+                      :topic="presentationStore.topic"
+                      :slides="presentationStore.slides"
+                      :theme="themes[presentationStore.currentThemeKey]"
+                      :config="{
+                        baseUrl: configStore.baseUrl,
+                        apiKey: configStore.apiKey,
+                        textModel: configStore.textModel,
+                        imageModel: configStore.imageModel,
+                        imageSource: configStore.imageSource
+                      }"
+                      :outline="presentationStore.outline"
+                      :is-generating="presentationStore.isGenerating"
+                      :generation-progress="presentationStore.generationProgress"
+                      :generation-log="presentationStore.generationLog"
+                      @back="prevStep"
+                      @export="handleExportPPT"
+                      @update-slide="handleUpdateSlide"
+        />
 
       </transition>
     </div>
