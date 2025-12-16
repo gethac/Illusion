@@ -80,6 +80,26 @@ export const usePresentationStore = defineStore('presentation', () => {
     }
   }
 
+  // 重新排序大纲项（用于拖拽排序）
+  function reorderOutline(fromIndex, toIndex) {
+    if (fromIndex >= 0 && fromIndex < outline.value.length &&
+        toIndex >= 0 && toIndex < outline.value.length &&
+        fromIndex !== toIndex) {
+      const item = outline.value.splice(fromIndex, 1)[0]
+      outline.value.splice(toIndex, 0, item)
+    }
+  }
+
+  // 交换大纲项位置
+  function swapOutlineItems(fromIndex, toIndex) {
+    if (fromIndex >= 0 && fromIndex < outline.value.length &&
+        toIndex >= 0 && toIndex < outline.value.length) {
+      const temp = outline.value[fromIndex]
+      outline.value[fromIndex] = outline.value[toIndex]
+      outline.value[toIndex] = temp
+    }
+  }
+
   // 设置幻灯片列表
   function setSlides(newSlides) {
     slides.value = newSlides
@@ -210,6 +230,8 @@ export const usePresentationStore = defineStore('presentation', () => {
     addOutlineItem,
     removeOutlineItem,
     updateOutlineItem,
+    reorderOutline,
+    swapOutlineItems,
     setSlides,
     addSlide,
     removeSlide,

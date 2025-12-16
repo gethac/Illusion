@@ -138,13 +138,28 @@
             </button>
           </div>
           <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-            <div v-for="(item, index) in presentationStore.outline" :key="index" class="group flex items-start gap-4 p-4 bg-black/40 border border-white/5 rounded-lg hover:border-[var(--accent-gold)] transition-colors relative">
+            <div
+              v-for="(item, index) in presentationStore.outline"
+              :key="index"
+              draggable="true"
+              @dragstart="handleDragStart(index, $event)"
+              @dragover.prevent="handleDragOver(index, $event)"
+              @drop="handleDrop(index, $event)"
+              @dragend="handleDragEnd"
+              class="group flex items-start gap-4 p-4 bg-black/40 border border-white/5 rounded-lg hover:border-[var(--accent-gold)] transition-colors relative cursor-move"
+              :class="{ 'opacity-50 scale-95': draggingIndex === index, 'ring-2 ring-[var(--accent-cyan)]': dropTargetIndex === index }"
+            >
+              <!-- 拖拽手柄 -->
+              <div class="flex flex-col items-center gap-1 pt-2 cursor-grab active:cursor-grabbing">
+                <Icon name="grip-vertical" :size="14" class="text-[#8a9a9a] group-hover:text-[var(--accent-cyan)]" />
+              </div>
+
               <div class="text-[#8a9a9a] font-mono text-xs mt-2 w-6">{{ String(index + 1).padStart(2, '0') }}</div>
               <div class="flex-1 space-y-2">
-                <input v-model="item.title" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-gold)] text-white font-bold text-sm outline-none">
-                <textarea v-model="item.desc" rows="1" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-cyan)] text-[#8a9a9a] text-xs outline-none resize-none"></textarea>
+                <input v-model="item.title" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-gold)] text-white font-bold text-sm outline-none" @click.stop>
+                <textarea v-model="item.desc" rows="1" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-cyan)] text-[#8a9a9a] text-xs outline-none resize-none" @click.stop></textarea>
               </div>
-              <button @click="handleRemoveOutlineItem(index)" class="opacity-0 group-hover:opacity-100 text-[#8a9a9a] hover:text-red-400 absolute top-2 right-2">
+              <button @click.stop="handleRemoveOutlineItem(index)" class="opacity-0 group-hover:opacity-100 text-[#8a9a9a] hover:text-red-400 absolute top-2 right-2 z-10">
                 <Icon name="x" :size="14"/>
               </button>
             </div>
@@ -267,6 +282,10 @@ const error = ref('')
 const isLaunchingGeneration = ref(false)
 const themes = PPT_THEMES
 
+// 拖拽状态
+const draggingIndex = ref(null)
+const dropTargetIndex = ref(null)
+
 // Methods
 const nextStep = () => {
   step.value++
@@ -318,6 +337,35 @@ const handleAddOutlineItem = () => {
 
 const handleRemoveOutlineItem = (index) => {
   presentationStore.removeOutlineItem(index)
+}
+
+// 拖拽处理函数
+const handleDragStart = (index, event) => {
+  draggingIndex.value = index
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', index.toString())
+}
+
+const handleDragOver = (index, event) => {
+  event.preventDefault()
+  dropTargetIndex.value = index
+}
+
+const handleDrop = (toIndex, event) => {
+  event.preventDefault()
+  const fromIndex = draggingIndex.value
+
+  if (fromIndex !== null && fromIndex !== toIndex) {
+    presentationStore.reorderOutline(fromIndex, toIndex)
+  }
+
+  draggingIndex.value = null
+  dropTargetIndex.value = null
+}
+
+const handleDragEnd = () => {
+  draggingIndex.value = null
+  dropTargetIndex.value = null
 }
 
 const startFullGeneration = async () => {
