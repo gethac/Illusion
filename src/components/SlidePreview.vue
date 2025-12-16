@@ -52,10 +52,17 @@
         <!-- 内容页缩略图 -->
         <div v-for="(slide, index) in slides" :key="index"
              @click="selectSlide(index)"
+             draggable="true"
+             @dragstart="handleSlideDragStart(index, $event)"
+             @dragover.prevent="handleSlideDragOver(index, $event)"
+             @drop="handleSlideDrop(index, $event)"
+             @dragend="handleSlideDragEnd"
              class="thumbnail-card rounded-lg overflow-hidden cursor-pointer transition-all relative"
              :class="{
                'ring-2 ring-[var(--accent-gold)]': selectedIndex === index,
-               'opacity-60': slide.isGenerating
+               'opacity-60': slide.isGenerating,
+               'opacity-50 scale-95': draggingSlideIndex === index,
+               'ring-2 ring-[var(--accent-cyan)]': dropTargetIndex === index
              }">
           <!-- 生成状态图标 -->
           <div v-if="slide.isGenerating" class="absolute top-1 right-1 z-10">
@@ -63,6 +70,11 @@
           </div>
           <div v-else class="absolute top-1 right-1 z-10">
             <Icon name="check-circle" :size="14" class="text-green-400"/>
+          </div>
+
+          <!-- 拖拽手柄 -->
+          <div class="absolute top-1 left-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity bg-black/80 rounded p-1">
+            <Icon name="grip-vertical" :size="12" class="text-[#8a9a9a]"/>
           </div>
 
           <div class="aspect-video bg-black/60 p-3 flex flex-col">
@@ -84,6 +96,9 @@
             </div>
             <div class="text-[8px]">{{ slide.layout }}</div>
           </div>
+
+          <!-- 拖拽指示器 -->
+          <div v-if="dropTargetIndex === index" class="absolute -bottom-1 left-0 right-0 h-1 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-gold)] rounded-full"></div>
         </div>
       </div>
 
@@ -233,12 +248,37 @@
                   重新生成
                 </button>
 
-                <button @click="regenerateSlideImage(selectedIndex)"
-                        :disabled="isRegeneratingImage"
-                        class="px-3 py-1.5 bg-[var(--accent-gold)]/20 hover:bg-[var(--accent-gold)]/30 border border-[var(--accent-gold)]/30 rounded text-[var(--accent-gold)] text-xs flex items-center gap-1 transition-colors">
-                  <Icon :name="isRegeneratingImage ? 'loader-2' : 'image'" :size="12" :class="{ 'animate-spin': isRegeneratingImage }"/>
-                  重新配图
-                </button>
+                <!-- 配图方式选择 -->
+                <div class="relative group">
+                  <button :disabled="isRegeneratingImage"
+                          class="px-3 py-1.5 bg-[var(--accent-gold)]/20 hover:bg-[var(--accent-gold)]/30 border border-[var(--accent-gold)]/30 rounded text-[var(--accent-gold)] text-xs flex items-center gap-1 transition-colors">
+                    <Icon :name="isRegeneratingImage ? 'loader-2' : 'image'" :size="12" :class="{ 'animate-spin': isRegeneratingImage }"/>
+                    重新配图
+                    <Icon name="chevron-down" :size="10"/>
+                  </button>
+
+                  <!-- 下拉菜单 -->
+                  <div class="absolute bottom-full left-0 mb-1 bg-black/95 border border-white/20 rounded-lg shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all min-w-[180px] z-50">
+                    <button @click="regenerateSlideImage(selectedIndex, 'ai')"
+                            :disabled="isRegeneratingImage"
+                            class="w-full px-4 py-2.5 hover:bg-white/10 flex items-center gap-2 border-b border-white/10 transition-colors">
+                      <Icon name="sparkles" :size="14" class="text-[var(--accent-gold)]"/>
+                      <div class="text-left flex-1">
+                        <div class="text-white text-xs font-bold">AI 生成</div>
+                        <div class="text-[#8a9a9a] text-[9px]">定制化，高相关性</div>
+                      </div>
+                    </button>
+                    <button @click="regenerateSlideImage(selectedIndex, 'web')"
+                            :disabled="isRegeneratingImage"
+                            class="w-full px-4 py-2.5 hover:bg-white/10 flex items-center gap-2 transition-colors">
+                      <Icon name="search" :size="14" class="text-[var(--accent-cyan)]"/>
+                      <div class="text-left flex-1">
+                        <div class="text-white text-xs font-bold">网络搜图</div>
+                        <div class="text-[#8a9a9a] text-[9px]">速度快，质量高</div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
 
                 <button @click="editSlide(selectedIndex)"
                         class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded text-white text-xs flex items-center gap-1 transition-colors">
@@ -274,11 +314,15 @@ const props = defineProps({
   generationLog: String
 })
 
-const emit = defineEmits(['back', 'export', 'update-slide'])
+const emit = defineEmits(['back', 'export', 'update-slide', 'reorder-slides'])
 
 const selectedIndex = ref(-1)
 const isRegenerating = ref(false)
 const isRegeneratingImage = ref(false)
+
+// 拖拽状态
+const draggingSlideIndex = ref(null)
+const dropTargetIndex = ref(null)
 
 const currentTheme = computed(() => props.theme)
 
@@ -321,7 +365,7 @@ async function regenerateSlideContent(index) {
   }
 }
 
-async function regenerateSlideImage(index) {
+async function regenerateSlideImage(index, imageSource = 'ai') {
   if (index < 0 || index >= props.slides.length) return
 
   isRegeneratingImage.value = true
@@ -331,13 +375,13 @@ async function regenerateSlideImage(index) {
 
     const slide = props.slides[index]
 
-    // 重新生成配图
+    // 重新生成配图，使用指定的图片源
     const imageResult = await generateSlideImage(
       slide.title,
       slide.content,
       currentTheme.value,
       props.config,
-      props.config.imageSource
+      imageSource  // 使用传入的图片源参数
     )
 
     // 更新图片数据
@@ -366,6 +410,50 @@ async function regenerateSlideImage(index) {
 function editSlide(index) {
   // TODO: 实现编辑对话框
   alert('编辑功能开发中...')
+}
+
+// 拖拽处理函数
+function handleSlideDragStart(index, event) {
+  draggingSlideIndex.value = index
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('text/plain', index.toString())
+}
+
+function handleSlideDragOver(index, event) {
+  event.preventDefault()
+  dropTargetIndex.value = index
+}
+
+function handleSlideDrop(toIndex, event) {
+  event.preventDefault()
+  const fromIndex = draggingSlideIndex.value
+
+  if (fromIndex !== null && fromIndex !== toIndex) {
+    // 通知父组件重新排序幻灯片
+    const newSlides = [...props.slides]
+    const [movedSlide] = newSlides.splice(fromIndex, 1)
+    newSlides.splice(toIndex, 0, movedSlide)
+
+    // 发送事件让父组件更新所有幻灯片
+    emit('reorder-slides', newSlides)
+
+    // 更新选中索引
+    if (selectedIndex.value === fromIndex) {
+      selectedIndex.value = toIndex
+    } else if (selectedIndex.value > fromIndex && selectedIndex.value <= toIndex) {
+      selectedIndex.value--
+    } else if (selectedIndex.value < fromIndex && selectedIndex.value >= toIndex) {
+      selectedIndex.value++
+    }
+  }
+
+  draggingSlideIndex.value = null
+  dropTargetIndex.value = null
+}
+
+function handleSlideDragEnd() {
+  draggingSlideIndex.value = null
+  dropTargetIndex.value = null
 }
 </script>
 

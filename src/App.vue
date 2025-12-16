@@ -53,27 +53,46 @@
         </div>
 
         <!-- STEP 1: 配置连接 -->
-        <div v-else-if="step === 1" key="step1" class="game-container w-full max-w-lg p-8 rounded-xl text-center">
+        <div v-else-if="step === 1" key="step1" class="game-container w-full max-w-2xl p-8 rounded-xl text-center max-h-[85vh] overflow-y-auto custom-scrollbar">
           <div class="text-[#6fffe9] text-xs font-bold tracking-widest mb-2 uppercase">Step 01 // Link</div>
           <h2 class="text-2xl font-serif text-white mb-6">接入智识网络</h2>
 
-          <div class="space-y-4 text-left">
-            <div>
-              <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">API 网关 (Base URL)</label>
-              <input v-model="configStore.baseUrl" class="magic-input w-full p-3 rounded" placeholder="https://api.openai.com/v1">
-            </div>
-            <div>
-              <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">API 密钥令符</label>
-              <input v-model="configStore.apiKey" type="password" class="magic-input w-full p-3 rounded" placeholder="sk-...">
-            </div>
-            <div class="grid grid-cols-2 gap-3">
+          <div class="space-y-6 text-left">
+            <!-- API 配置 -->
+            <div class="space-y-4">
               <div>
-                <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">文字模型</label>
-                <input v-model="configStore.textModel" class="magic-input w-full p-3 rounded text-sm" placeholder="gpt-5.2">
+                <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">API 网关 (Base URL)</label>
+                <input v-model="configStore.baseUrl" class="magic-input w-full p-3 rounded" placeholder="https://api.openai.com/v1">
               </div>
               <div>
-                <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">图像模型</label>
-                <input v-model="configStore.imageModel" class="magic-input w-full p-3 rounded text-sm" placeholder="dall-e-3">
+                <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">API 密钥令符</label>
+                <input v-model="configStore.apiKey" type="password" class="magic-input w-full p-3 rounded" placeholder="sk-...">
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">文字模型</label>
+                  <input v-model="configStore.textModel" class="magic-input w-full p-3 rounded text-sm" placeholder="gpt-5.2">
+                </div>
+                <div>
+                  <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">图像模型</label>
+                  <input v-model="configStore.imageModel" class="magic-input w-full p-3 rounded text-sm" placeholder="dall-e-3">
+                </div>
+              </div>
+            </div>
+
+            <!-- 可选：图片搜索API -->
+            <div class="space-y-3 bg-black/20 p-4 rounded-lg">
+              <div class="text-[10px] text-[#8a9a9a] uppercase flex items-center gap-2">
+                <Icon name="key" :size="12"/>
+                可选：网络搜图 API 密钥
+              </div>
+              <div>
+                <label class="text-[10px] text-[#8a9a9a] mb-1 block">Unsplash API Key <span class="text-[9px] opacity-50">(50次/小时)</span></label>
+                <input v-model="configStore.unsplashApiKey" type="password" class="magic-input w-full p-2 rounded text-xs" placeholder="可选">
+              </div>
+              <div>
+                <label class="text-[10px] text-[#8a9a9a] mb-1 block">Pexels API Key <span class="text-[9px] opacity-50">(200次/小时)</span></label>
+                <input v-model="configStore.pexelsApiKey" type="password" class="magic-input w-full p-2 rounded text-xs" placeholder="可选">
               </div>
             </div>
           </div>
@@ -127,89 +146,162 @@
         </div>
 
         <!-- STEP 3: 大纲确认 -->
-        <div v-else-if="step === 3" key="step3" class="game-container w-full max-w-4xl p-8 rounded-xl h-[75vh] flex flex-col">
-          <div class="flex justify-between items-center mb-6 shrink-0">
+        <div v-else-if="step === 3" key="step3" class="w-full max-w-6xl h-[85vh] flex flex-col">
+          <!-- 顶部标题栏 -->
+          <div class="flex justify-between items-center mb-8 shrink-0">
             <div>
-              <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-widest uppercase">Step 03 // Structure</div>
-              <h2 class="text-2xl font-bold text-white">确认战术大纲</h2>
+              <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-widest uppercase mb-1 flex items-center gap-2">
+                <Icon name="list" :size="14"/>
+                Step 03 // Structure
+              </div>
+              <h2 class="text-3xl font-bold text-white mb-1">确认战术大纲</h2>
+              <p class="text-[#8a9a9a] text-sm">共 {{ presentationStore.outline.length }} 个章节 · 拖拽排序 · AI 优化</p>
             </div>
-            <button @click="handleAddOutlineItem" class="px-3 py-1 border border-[#6fffe9]/30 text-[#6fffe9] hover:bg-[#6fffe9]/10 rounded text-xs flex items-center gap-1 transition-colors">
-              <Icon name="plus" :size="14"/> 增援节点
+            <button @click="handleAddOutlineItem"
+                    class="game-btn px-6 py-3 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-gold)] text-[#0a1111] font-bold flex items-center gap-2 shadow-lg">
+              <Icon name="plus-circle" :size="16"/>
+              添加章节
             </button>
           </div>
-          <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
-            <div
-              v-for="(item, index) in presentationStore.outline"
-              :key="index"
-              draggable="true"
-              @dragstart="handleDragStart(index, $event)"
-              @dragover.prevent="handleDragOver(index, $event)"
-              @drop="handleDrop(index, $event)"
-              @dragend="handleDragEnd"
-              class="group flex items-start gap-4 p-4 bg-black/40 border border-white/5 rounded-lg hover:border-[var(--accent-gold)] transition-colors relative cursor-move"
-              :class="{ 'opacity-50 scale-95': draggingIndex === index, 'ring-2 ring-[var(--accent-cyan)]': dropTargetIndex === index }"
-            >
-              <!-- 拖拽手柄 -->
-              <div class="flex flex-col items-center gap-1 pt-2 cursor-grab active:cursor-grabbing">
-                <Icon name="grip-vertical" :size="14" class="text-[#8a9a9a] group-hover:text-[var(--accent-cyan)]" />
-              </div>
 
-              <div class="text-[#8a9a9a] font-mono text-xs mt-2 w-6">{{ String(index + 1).padStart(2, '0') }}</div>
-              <div class="flex-1 space-y-2">
-                <input v-model="item.title" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-gold)] text-white font-bold text-sm outline-none" @click.stop>
-                <div class="relative">
-                  <textarea v-model="item.desc" rows="1" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-cyan)] text-[#8a9a9a] text-xs outline-none resize-none" @click.stop></textarea>
+          <!-- 大纲列表 -->
+          <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+            <div class="grid gap-4">
+              <div
+                v-for="(item, index) in presentationStore.outline"
+                :key="index"
+                draggable="true"
+                @dragstart="handleDragStart(index, $event)"
+                @dragover.prevent="handleDragOver(index, $event)"
+                @drop="handleDrop(index, $event)"
+                @dragend="handleDragEnd"
+                class="outline-card group relative"
+                :class="{
+                  'dragging': draggingIndex === index,
+                  'drop-target': dropTargetIndex === index
+                }"
+              >
+                <!-- 背景装饰 -->
+                <div class="absolute inset-0 bg-gradient-to-br from-[var(--accent-gold)]/5 to-[var(--accent-cyan)]/5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
 
-                  <!-- AI重写按钮组 -->
-                  <div class="absolute -right-1 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <button
-                      @click.stop="handleRewrite(index, 'simplify')"
-                      :disabled="rewritingIndex === index"
-                      class="p-1 bg-black/80 hover:bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/30 rounded text-[var(--accent-cyan)] text-[10px] flex items-center gap-1 transition-colors"
-                      title="精简">
-                      <Icon v-if="rewritingIndex === index && rewritingMode === 'simplify'" name="loader-2" :size="10" class="animate-spin"/>
-                      <Icon v-else name="minimize-2" :size="10"/>
-                    </button>
-                    <button
-                      @click.stop="handleRewrite(index, 'expand')"
-                      :disabled="rewritingIndex === index"
-                      class="p-1 bg-black/80 hover:bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/30 rounded text-[var(--accent-cyan)] text-[10px] flex items-center gap-1 transition-colors"
-                      title="扩写">
-                      <Icon v-if="rewritingIndex === index && rewritingMode === 'expand'" name="loader-2" :size="10" class="animate-spin"/>
-                      <Icon v-else name="maximize-2" :size="10"/>
-                    </button>
-                    <button
-                      @click.stop="handleRewrite(index, 'rephrase')"
-                      :disabled="rewritingIndex === index"
-                      class="p-1 bg-black/80 hover:bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/30 rounded text-[var(--accent-cyan)] text-[10px] flex items-center gap-1 transition-colors"
-                      title="换个说法">
-                      <Icon v-if="rewritingIndex === index && rewritingMode === 'rephrase'" name="loader-2" :size="10" class="animate-spin"/>
-                      <Icon v-else name="refresh-cw" :size="10"/>
-                    </button>
+                <!-- 内容区域 -->
+                <div class="relative flex gap-4 p-6 bg-black/60 backdrop-blur-sm border border-white/10 rounded-xl hover:border-[var(--accent-gold)]/50 transition-all">
+                  <!-- 左侧：序号 + 拖拽手柄 -->
+                  <div class="flex flex-col items-center gap-3 shrink-0">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-[var(--accent-gold)] to-[var(--accent-cyan)] flex items-center justify-center font-bold text-[#0a1111] text-sm shadow-lg">
+                      {{ index + 1 }}
+                    </div>
+                    <div class="cursor-grab active:cursor-grabbing p-2 hover:bg-white/5 rounded transition-colors">
+                      <Icon name="grip-vertical" :size="16" class="text-[#8a9a9a] group-hover:text-[var(--accent-cyan)]" />
+                    </div>
                   </div>
+
+                  <!-- 中间：内容编辑区 -->
+                  <div class="flex-1 space-y-3">
+                    <!-- 标题 -->
+                    <div class="flex items-center gap-2">
+                      <Icon name="heading" :size="14" class="text-[var(--accent-gold)]"/>
+                      <input
+                        v-model="item.title"
+                        class="flex-1 bg-transparent border-b-2 border-transparent focus:border-[var(--accent-gold)] text-white font-bold text-lg outline-none transition-colors"
+                        placeholder="输入章节标题..."
+                        @click.stop>
+                    </div>
+
+                    <!-- 描述 -->
+                    <div class="relative">
+                      <div class="flex items-start gap-2">
+                        <Icon name="file-text" :size="14" class="text-[var(--accent-cyan)] mt-1"/>
+                        <textarea
+                          v-model="item.desc"
+                          rows="2"
+                          class="flex-1 bg-transparent border border-transparent focus:border-[var(--accent-cyan)] text-[#d0d0d0] text-sm outline-none resize-none rounded p-2 transition-colors"
+                          placeholder="输入章节描述..."
+                          @click.stop></textarea>
+                      </div>
+
+                      <!-- AI重写按钮组 -->
+                      <div class="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 bg-black/90 p-2 rounded-lg border border-white/10 shadow-xl">
+                        <button
+                          @click.stop="handleRewrite(index, 'simplify')"
+                          :disabled="rewritingIndex === index"
+                          class="ai-rewrite-btn"
+                          title="精简">
+                          <Icon v-if="rewritingIndex === index && rewritingMode === 'simplify'" name="loader-2" :size="12" class="animate-spin"/>
+                          <Icon v-else name="minimize-2" :size="12"/>
+                          <span class="text-[9px]">精简</span>
+                        </button>
+                        <button
+                          @click.stop="handleRewrite(index, 'expand')"
+                          :disabled="rewritingIndex === index"
+                          class="ai-rewrite-btn"
+                          title="扩写">
+                          <Icon v-if="rewritingIndex === index && rewritingMode === 'expand'" name="loader-2" :size="12" class="animate-spin"/>
+                          <Icon v-else name="maximize-2" :size="12"/>
+                          <span class="text-[9px]">扩写</span>
+                        </button>
+                        <button
+                          @click.stop="handleRewrite(index, 'rephrase')"
+                          :disabled="rewritingIndex === index"
+                          class="ai-rewrite-btn"
+                          title="换个说法">
+                          <Icon v-if="rewritingIndex === index && rewritingMode === 'rephrase'" name="loader-2" :size="12" class="animate-spin"/>
+                          <Icon v-else name="refresh-cw" :size="12"/>
+                          <span class="text-[9px]">换说法</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- 重写预览 -->
+                    <div v-if="rewritePreview && rewritePreview.index === index" class="mt-3 p-4 bg-gradient-to-br from-[var(--accent-cyan)]/10 to-[var(--accent-gold)]/10 border border-[var(--accent-cyan)]/30 rounded-lg space-y-3 shadow-lg">
+                      <div class="flex items-center justify-between">
+                        <div class="text-[var(--accent-cyan)] font-bold text-xs uppercase flex items-center gap-2">
+                          <Icon name="sparkles" :size="14"/>
+                          AI重写预览 · {{ rewritePreview.modeName }}
+                        </div>
+                        <button @click.stop="cancelRewritePreview" class="text-[#8a9a9a] hover:text-white text-xs">
+                          <Icon name="x" :size="14"/>
+                        </button>
+                      </div>
+                      <div class="text-white leading-relaxed text-sm bg-black/20 p-3 rounded">{{ rewritePreview.text }}</div>
+                      <div class="flex gap-2 justify-end">
+                        <button @click.stop="cancelRewritePreview" class="px-4 py-2 text-xs text-[#8a9a9a] hover:text-white transition-colors">取消</button>
+                        <button @click.stop="applyRewritePreview" class="px-4 py-2 text-xs bg-[var(--accent-cyan)] hover:bg-[var(--accent-cyan)]/80 text-[#0a1111] rounded font-bold transition-colors">应用</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 右侧：删除按钮 -->
+                  <button
+                    @click.stop="handleRemoveOutlineItem(index)"
+                    class="opacity-0 group-hover:opacity-100 self-start p-2 text-[#8a9a9a] hover:text-red-400 hover:bg-red-400/10 rounded transition-all"
+                    title="删除章节">
+                    <Icon name="trash-2" :size="16"/>
+                  </button>
                 </div>
 
-                <!-- 重写预览 -->
-                <div v-if="rewritePreview && rewritePreview.index === index" class="mt-2 p-3 bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 rounded text-xs space-y-2">
-                  <div class="text-[var(--accent-cyan)] font-bold text-[10px] uppercase flex items-center gap-2">
-                    <Icon name="sparkles" :size="12"/>
-                    AI重写预览 ({{ rewritePreview.modeName }})
-                  </div>
-                  <div class="text-white/80 leading-relaxed">{{ rewritePreview.text }}</div>
-                  <div class="flex gap-2 justify-end">
-                    <button @click.stop="cancelRewritePreview" class="px-3 py-1 text-[10px] text-[#8a9a9a] hover:text-white transition-colors">取消</button>
-                    <button @click.stop="applyRewritePreview" class="px-3 py-1 text-[10px] bg-[var(--accent-cyan)] text-[#0a1111] rounded hover:bg-[var(--accent-cyan)]/80 transition-colors">应用</button>
-                  </div>
-                </div>
+                <!-- 拖拽指示器 -->
+                <div v-if="dropTargetIndex === index" class="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-gold)] rounded-full"></div>
               </div>
-              <button @click.stop="handleRemoveOutlineItem(index)" class="opacity-0 group-hover:opacity-100 text-[#8a9a9a] hover:text-red-400 absolute top-2 right-2 z-10">
-                <Icon name="x" :size="14"/>
-              </button>
             </div>
           </div>
-          <div class="mt-6 flex justify-between shrink-0 pt-4 border-t border-white/10">
-            <button @click="prevStep" class="text-xs text-[#8a9a9a] hover:text-white">返回重置</button>
-            <button @click="nextStep" class="game-btn px-8 py-2 bg-[var(--accent-cyan)] text-[#0a1111] font-bold">结构确认</button>
+
+          <!-- 底部操作栏 -->
+          <div class="mt-6 flex justify-between items-center shrink-0 pt-6 border-t border-white/10">
+            <button @click="prevStep" class="px-6 py-3 text-sm text-[#8a9a9a] hover:text-white hover:bg-white/5 rounded transition-colors">
+              <Icon name="arrow-left" :size="14" class="inline mr-2"/>
+              返回重置
+            </button>
+            <div class="flex items-center gap-4">
+              <div class="text-[#8a9a9a] text-xs">
+                <Icon name="info" :size="12" class="inline mr-1"/>
+                支持拖拽排序 · 悬停显示AI优化
+              </div>
+              <button @click="nextStep" class="game-btn px-10 py-3 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-gold)] text-[#0a1111] text-lg font-bold shadow-lg">
+                确认大纲
+                <Icon name="arrow-right" :size="16" class="inline ml-2"/>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -265,6 +357,7 @@
                       @back="prevStep"
                       @export="handleExportPPT"
                       @update-slide="handleUpdateSlide"
+                      @reorder-slides="handleReorderSlides"
         />
 
       </transition>
@@ -548,6 +641,11 @@ const handleExportPPT = async () => {
 // 处理幻灯片更新
 const handleUpdateSlide = (index, updatedSlide) => {
   presentationStore.updateSlide(index, updatedSlide)
+}
+
+// 处理幻灯片重新排序
+const handleReorderSlides = (newSlides) => {
+  presentationStore.setSlides(newSlides)
 }
 
 // 处理从文件提取的主题
