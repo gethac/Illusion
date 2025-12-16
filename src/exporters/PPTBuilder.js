@@ -586,7 +586,10 @@ export class PPTBuilder {
         chartColors: [this.colors.accent, this.colors.text, '6fffe9', 'ff6b6b']
       }
 
-      slide.addChart(data.chartType, data.chartData, chartOptions)
+      // 深拷贝图表数据，避免pptxgen修改原始数据
+      const chartDataCopy = JSON.parse(JSON.stringify(data.chartData))
+
+      slide.addChart(data.chartType, chartDataCopy, chartOptions)
     }
   }
 

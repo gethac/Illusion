@@ -54,29 +54,71 @@ const props = defineProps({
   }
 })
 
-// 智能判断文字颜色 - 确保在任何背景下都可读
+// 智能判断文字颜色 - 强制高对比度，确保在任何背景下都可读
 const getSmartTextColor = () => {
-  const textCol = props.theme?.colors?.text || '#ffffff'
+  // 对于图表，始终使用纯白色以确保最佳可读性
+  // 沉浸式主题背景通常是深色，白色文字提供最强对比度
+  const forcedLightColor = '#ffffff'
+  const forcedDarkColor = '#1a1a1a'
 
-  // 如果文字颜色太暗（亮度 < 128），强制使用浅色
-  const rgb = hexToRgb(textCol)
-  if (rgb) {
-    const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000
-    // 如果亮度小于128（偏暗），使用白色；否则使用原色
-    return brightness < 128 ? '#ffffff' : textCol
+  // 获取主题文字颜色和强调色
+  const themeTextColor = props.theme?.colors?.text
+  const themeAccentColor = props.theme?.colors?.accent
+
+  // 如果没有主题颜色，默认使用白色
+  if (!themeTextColor) {
+    return forcedLightColor
   }
 
-  return textCol
+  // 计算颜色亮度
+  const textBrightness = getColorBrightness(themeTextColor)
+  const accentBrightness = themeAccentColor ? getColorBrightness(themeAccentColor) : 0
+
+  // 策略1：如果强调色是浅色（>180），使用深色文字
+  // 否则始终使用白色文字（这覆盖了大多数沉浸式主题的深色背景）
+  if (accentBrightness > 180) {
+    return forcedDarkColor
+  }
+
+  // 策略2：对于深色背景（文字亮度 < 150），强制使用纯白色
+  if (textBrightness < 150) {
+    return forcedLightColor
+  }
+
+  // 策略3：检查对比度，如果差异小于150，强制使用高对比度颜色
+  const contrastDiff = Math.abs(textBrightness - accentBrightness)
+  if (contrastDiff < 150) {
+    return accentBrightness > 150 ? forcedDarkColor : forcedLightColor
+  }
+
+  // 策略4：默认情况下，为保证可读性，优先使用白色
+  return forcedLightColor
+}
+
+// 计算颜色亮度（0-255）
+const getColorBrightness = (color) => {
+  const rgb = hexToRgb(color)
+  if (!rgb) return 128 // 如果解析失败，返回中间值
+
+  // 使用感知亮度公式
+  return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000
 }
 
 // 将十六进制颜色转换为 RGB
 const hexToRgb = (hex) => {
+  if (!hex) return null
+
   // 移除 # 号
   hex = hex.replace(/^#/, '')
 
   // 处理 3 位hex
   if (hex.length === 3) {
     hex = hex.split('').map(char => char + char).join('')
+  }
+
+  // 验证hex格式
+  if (!/^[0-9A-F]{6}$/i.test(hex)) {
+    return null
   }
 
   const bigint = parseInt(hex, 16)

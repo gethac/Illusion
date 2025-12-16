@@ -367,30 +367,80 @@ function addClassicLayout(slide, slideData, textCol, accentCol, fontFace) {
         }
     }
 
-    // 图片 - 确保不超出边界
+    // 图片 - 支持多图显示
     if (hasImage) {
-        const imgData = slideData.imgData || (slideData.images && slideData.images[0]);
-        if (imgData) {
-            const imageSize = Math.min(3.7, maxY - 1.3); // 动态调整图片大小
+        // 获取所有图片
+        let imageArray = [];
+        if (slideData.images && Array.isArray(slideData.images)) {
+            imageArray = slideData.images.slice(0, 4); // 最多4张
+        } else if (slideData.imgData) {
+            imageArray = [slideData.imgData];
+        }
 
-            // 添加阴影背景
-            slide.addShape('rect', {
-                x: 6.0,
-                y: 1.4,
-                w: imageSize,
-                h: imageSize,
-                fill: { color: '000000', transparency: 90 }
-            });
+        if (imageArray.length > 0) {
+            const availableHeight = maxY - 1.3;
 
-            // 添加图片
-            slide.addImage({
-                data: `image/png;base64,${imgData}`,
-                x: 5.85,
-                y: 1.3,
-                w: imageSize,
-                h: imageSize,
-                sizing: { type: "cover", w: imageSize, h: imageSize }
-            });
+            if (imageArray.length === 1) {
+                // 单图 - 大图显示
+                const imageSize = Math.min(3.7, availableHeight);
+
+                // 添加阴影背景
+                slide.addShape('rect', {
+                    x: 6.0,
+                    y: 1.4,
+                    w: imageSize,
+                    h: imageSize,
+                    fill: { color: '000000', transparency: 90 }
+                });
+
+                // 添加图片
+                slide.addImage({
+                    data: `image/png;base64,${imageArray[0]}`,
+                    x: 5.85,
+                    y: 1.3,
+                    w: imageSize,
+                    h: imageSize,
+                    sizing: { type: "cover", w: imageSize, h: imageSize }
+                });
+            } else if (imageArray.length === 2) {
+                // 双图 - 上下布局
+                const imageW = 3.7;
+                const imageH = Math.min(1.8, availableHeight / 2 - 0.2);
+                const gap = 0.2;
+
+                imageArray.forEach((imgData, idx) => {
+                    const y = 1.3 + (idx * (imageH + gap));
+                    slide.addImage({
+                        data: `image/png;base64,${imgData}`,
+                        x: 5.85,
+                        y: y,
+                        w: imageW,
+                        h: imageH,
+                        sizing: { type: "cover", w: imageW, h: imageH }
+                    });
+                });
+            } else {
+                // 多图（3-4张）- 2x2网格
+                const imageW = 1.8;
+                const imageH = Math.min(1.5, availableHeight / 2 - 0.2);
+                const gap = 0.15;
+
+                imageArray.forEach((imgData, idx) => {
+                    const row = Math.floor(idx / 2);
+                    const col = idx % 2;
+                    const x = 5.85 + (col * (imageW + gap));
+                    const y = 1.3 + (row * (imageH + gap));
+
+                    slide.addImage({
+                        data: `image/png;base64,${imgData}`,
+                        x: x,
+                        y: y,
+                        w: imageW,
+                        h: imageH,
+                        sizing: { type: "cover", w: imageW, h: imageH }
+                    });
+                });
+            }
         }
     }
 }
@@ -688,22 +738,25 @@ function addChartLayout(slide, slideData, textCol, accentCol, fontFace) {
             chartColors: [accentCol, textCol, '6fffe9', 'ff6b6b']
         };
 
+        // 深拷贝图表数据，避免pptxgen修改原始数据
+        const chartDataCopy = JSON.parse(JSON.stringify(slideData.chartData));
+
         // 根据图表类型添加图表
         switch(slideData.chartType) {
             case 'bar':
-                slide.addChart('bar', slideData.chartData, chartOptions);
+                slide.addChart('bar', chartDataCopy, chartOptions);
                 break;
             case 'pie':
-                slide.addChart('pie', slideData.chartData, chartOptions);
+                slide.addChart('pie', chartDataCopy, chartOptions);
                 break;
             case 'line':
-                slide.addChart('line', slideData.chartData, chartOptions);
+                slide.addChart('line', chartDataCopy, chartOptions);
                 break;
             case 'area':
-                slide.addChart('area', slideData.chartData, chartOptions);
+                slide.addChart('area', chartDataCopy, chartOptions);
                 break;
             default:
-                slide.addChart('bar', slideData.chartData, chartOptions);
+                slide.addChart('bar', chartDataCopy, chartOptions);
         }
     } else if (slideData.items && slideData.items.length) {
         // 如果没有图表数据，使用项目列表作为柱状图数据

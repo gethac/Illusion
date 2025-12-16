@@ -2,6 +2,9 @@
   <div class="h-screen w-screen overflow-hidden bg-[#05080a] relative flex items-center justify-center"
        :class="{ 'reduce-motion': !configStore.enableAnimations }">
 
+    <!-- 通知容器 -->
+    <NotificationContainer />
+
     <!-- 背景效果 -->
     <canvas id="particle-canvas"></canvas>
     <div class="scanlines"></div>
@@ -19,17 +22,6 @@
     <div id="launch-glow" class="launch-glow"></div>
 
     <div class="relative z-10 w-full h-full flex flex-col items-center justify-center p-4">
-
-      <!-- 动画开关按钮 -->
-      <button @click="configStore.enableAnimations = !configStore.enableAnimations"
-              class="fixed top-4 right-4 z-50 p-2 rounded bg-black/60 hover:bg-black/80 border border-white/10 transition-colors group"
-              title="切换动画效果">
-        <Icon :name="configStore.enableAnimations ? 'zap' : 'zap-off'" :size="20"
-              :class="configStore.enableAnimations ? 'text-[var(--accent-gold)]' : 'text-[#8a9a9a]'"/>
-        <span class="absolute right-full mr-2 top-1/2 -translate-y-1/2 text-xs text-white bg-black/90 px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
-          {{ configStore.enableAnimations ? '动画已启用' : '动画已禁用' }}
-        </span>
-      </button>
 
       <!-- 步骤内容 -->
       <transition :name="isLaunchingGeneration ? 'launch-animation' : 'step'" mode="out-in">
@@ -116,8 +108,8 @@
 
           <div class="mt-8 flex justify-between">
             <button @click="prevStep" class="text-xs text-[#8a9a9a] hover:text-white">中断连接</button>
-            <button @click="saveConfigAndNext" :disabled="!configStore.apiKey" class="game-btn px-8 py-2 bg-[#6fffe9] text-[#0a1111] font-bold">
-              验证通过
+            <button @click="validateAndSaveConfig" :disabled="!configStore.apiKey || isValidating" class="game-btn px-8 py-2 bg-[#6fffe9] text-[#0a1111] font-bold">
+              {{ isValidating ? '验证中...' : '验证通过' }}
             </button>
           </div>
         </div>
@@ -128,15 +120,29 @@
           <h2 class="text-2xl font-bold text-white">输入生成指令</h2>
           <div class="space-y-4 text-left">
             <div>
-              <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block">核心议题</label>
-              <textarea v-model="presentationStore.topic" class="magic-input w-full h-24 p-4 text-lg font-medium resize-none"
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-[10px] text-[#8a9a9a] uppercase">核心议题</label>
+                <span class="text-[10px]" :class="presentationStore.topic.length > 200 ? 'text-amber-400' : 'text-[#8a9a9a]'">
+                  {{ presentationStore.topic.length }} / 500
+                </span>
+              </div>
+              <textarea v-model="presentationStore.topic"
+                        maxlength="500"
+                        class="magic-input w-full h-24 p-4 text-lg font-medium resize-none"
                         placeholder="例如：2025年人工智能发展趋势..."></textarea>
             </div>
             <div>
-              <label class="text-[10px] text-[#8a9a9a] uppercase mb-1 block flex items-center gap-2">
-                <span class="w-1 h-1 bg-[var(--accent-cyan)] rounded-full"></span> 补充咒文
-              </label>
-              <textarea v-model="presentationStore.additionalInfo" class="magic-input w-full h-20 p-3 text-xs resize-none"
+              <div class="flex justify-between items-center mb-1">
+                <label class="text-[10px] text-[#8a9a9a] uppercase flex items-center gap-2">
+                  <span class="w-1 h-1 bg-[var(--accent-cyan)] rounded-full"></span> 补充咒文
+                </label>
+                <span class="text-[10px]" :class="presentationStore.additionalInfo.length > 300 ? 'text-amber-400' : 'text-[#8a9a9a]'">
+                  {{ presentationStore.additionalInfo.length }} / 1000
+                </span>
+              </div>
+              <textarea v-model="presentationStore.additionalInfo"
+                        maxlength="1000"
+                        class="magic-input w-full h-20 p-3 text-xs resize-none"
                         placeholder="例如：包含团队介绍、风格幽默、强调数据增长..."></textarea>
             </div>
 
@@ -390,10 +396,13 @@
 import { ref, onMounted } from 'vue'
 import { useConfigStore } from './stores/config'
 import { usePresentationStore } from './stores/presentation'
+import { useNotification } from './composables/useNotification'
+import { validateAPIKey } from './services/apiValidator'
 import Icon from './components/Icon.vue'
 import Chart from './components/Chart.vue'
 import FileUpload from './components/FileUpload.vue'
 import SlidePreview from './components/SlidePreview.vue'
+import NotificationContainer from './components/NotificationContainer.vue'
 import { generateOutline } from './generators/outline'
 import { generateSlideContent } from './generators/content'
 import { exportToPPTX } from './exporters/pptx'
@@ -405,9 +414,13 @@ import { generateImmersiveTheme, getDefaultImmersiveTheme } from './services/the
 const configStore = useConfigStore()
 const presentationStore = usePresentationStore()
 
+// Notification
+const { success, error, warning, info } = useNotification()
+
 // State
 const step = ref(0)
 const isLoading = ref(false)
+const isValidating = ref(false)
 const error = ref('')
 const isLaunchingGeneration = ref(false)
 const themes = PPT_THEMES
@@ -432,7 +445,32 @@ const prevStep = () => {
 
 const saveConfigAndNext = () => {
   configStore.saveConfig()
+  success('配置已保存')
   nextStep()
+}
+
+const validateAndSaveConfig = async () => {
+  isValidating.value = true
+
+  try {
+    info('正在验证 API 密钥...')
+
+    const result = await validateAPIKey(
+      configStore.baseUrl,
+      configStore.apiKey,
+      configStore.textModel
+    )
+
+    if (result.valid) {
+      configStore.saveConfig()
+      success(result.message)
+      nextStep()
+    }
+  } catch (err) {
+    error(err.message || '验证失败，请检查配置')
+  } finally {
+    isValidating.value = false
+  }
 }
 
 const handleGenerateOutline = async () => {
@@ -440,6 +478,8 @@ const handleGenerateOutline = async () => {
   error.value = ''
 
   try {
+    info('正在生成大纲，请稍候...')
+
     const config = {
       baseUrl: configStore.baseUrl,
       apiKey: configStore.apiKey,
@@ -454,10 +494,18 @@ const handleGenerateOutline = async () => {
       configStore.pageCount
     )
 
+    if (!outline || outline.length === 0) {
+      throw new Error('生成的大纲为空，请重试')
+    }
+
     presentationStore.setOutline(outline)
+    success(`成功生成 ${outline.length} 个章节`)
     nextStep()
   } catch (err) {
-    error.value = err.message || '生成大纲失败，请检查配置并重试'
+    const errorMsg = err.message || '生成大纲失败，请检查配置并重试'
+    error.value = errorMsg
+    error(errorMsg)
+    console.error('大纲生成错误:', err)
   } finally {
     isLoading.value = false
   }
@@ -531,7 +579,7 @@ const handleRewrite = async (index, mode) => {
     }
   } catch (err) {
     if (err.name !== 'AbortError') {
-      alert('重写失败: ' + err.message)
+      error('重写失败: ' + err.message)
     }
   } finally {
     rewritingIndex.value = null
@@ -603,41 +651,71 @@ const startFullGeneration = async () => {
   }))
   presentationStore.setSlides(slides)
 
-  // 逐页生成
-  for (let i = 0; i < presentationStore.outline.length; i++) {
+  // 批量并行生成（每批3个以平衡性能和API限制）
+  const batchSize = 3
+  const totalSlides = presentationStore.outline.length
+
+  for (let batchStart = 0; batchStart < totalSlides; batchStart += batchSize) {
     if (presentationStore.abortController?.signal.aborted) {
       break
     }
 
+    const batchEnd = Math.min(batchStart + batchSize, totalSlides)
+    const batchPromises = []
+
+    // 创建当前批次的生成任务
+    for (let i = batchStart; i < batchEnd; i++) {
+      const slideIndex = i
+      const promise = (async () => {
+        try {
+          presentationStore.updateGenerationProgress(
+            ((slideIndex / totalSlides) * 100),
+            `正在生成第 ${slideIndex + 1}/${totalSlides} 页...`
+          )
+
+          const slideData = await generateSlideContent(
+            presentationStore.topic,
+            presentationStore.outline[slideIndex],
+            config,
+            presentationStore.abortController?.signal
+          )
+
+          presentationStore.updateSlide(slideIndex, {
+            ...slideData,
+            title: presentationStore.outline[slideIndex].title,
+            isGenerating: false
+          })
+
+          return { index: slideIndex, success: true }
+        } catch (e) {
+          if (e.name === 'AbortError') {
+            console.log(`第 ${slideIndex + 1} 页生成被取消`)
+            throw e
+          }
+          console.error(`第 ${slideIndex + 1} 页生成失败:`, e)
+          presentationStore.updateSlide(slideIndex, {
+            content: '生成失败',
+            isGenerating: false
+          })
+          warning(`第 ${slideIndex + 1} 页生成失败: ${e.message}`)
+          return { index: slideIndex, success: false, error: e.message }
+        }
+      })()
+
+      batchPromises.push(promise)
+    }
+
+    // 等待当前批次完成
     try {
-      presentationStore.updateGenerationProgress(
-        ((i / presentationStore.outline.length) * 100),
-        `正在生成第 ${i + 1}/${presentationStore.outline.length} 页...`
-      )
-
-      const slideData = await generateSlideContent(
-        presentationStore.topic,
-        presentationStore.outline[i],
-        config,
-        presentationStore.abortController?.signal
-      )
-
-      presentationStore.updateSlide(i, {
-        ...slideData,
-        title: presentationStore.outline[i].title,
-        isGenerating: false
-      })
-
+      const results = await Promise.all(batchPromises)
+      const failedCount = results.filter(r => !r.success).length
+      if (failedCount > 0) {
+        info(`批次 ${Math.floor(batchStart / batchSize) + 1} 完成，${failedCount} 页失败`)
+      }
     } catch (e) {
       if (e.name === 'AbortError') {
-        console.log(`第 ${i + 1} 页生成被取消`)
         break
       }
-      console.error(`第 ${i + 1} 页生成失败:`, e)
-      presentationStore.updateSlide(i, {
-        content: '生成失败',
-        isGenerating: false
-      })
     }
   }
 
@@ -686,8 +764,9 @@ const handleExportPPT = async () => {
       theme,
       presentationStore.currentThemeKey
     )
+    success('PPT 导出成功！')
   } catch (err) {
-    alert('导出失败: ' + err.message)
+    error('导出失败: ' + err.message)
   }
 }
 

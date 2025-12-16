@@ -18,8 +18,8 @@ export async function generateSlideContent(topic, slideOutline, config, signal =
     const prompt = `你是一个专业的 PPT 内容生成器和版式设计师。请为以下幻灯片生成详细、结构化的内容，并智能选择最佳布局。
 
 PPT 主题: ${topic}
-本页标题: ${slideOutline.title}
-本页说明: ${slideOutline.desc}
+标题: ${slideOutline.title}
+主题说明: ${slideOutline.desc}
 
 **重要**: 请根据内容特点智能选择最合适的布局，不要总是使用 classic 布局。尽可能使用多样化的布局类型来提升演示效果。
 
@@ -63,14 +63,14 @@ PPT 主题: ${topic}
 返回格式示例：
 {
   "layout": "chart",
-  "content": "详细的段落描述，200-300字，包含具体数据、案例或论据。使用专业术语，逻辑清晰。",
+  "content": "详细的段落描述，200-300字，包含具体数据、案例或论据。使用专业术语，逻辑清晰。直接陈述事实和观点，不要使用'本页'、'这一页'等自我指涉的表达。",
   "items": [
     "要点1: 包含具体数据或案例",
     "要点2: 突出关键信息",
     "要点3: 强调优势或影响",
     "要点4: 提供实际应用场景"
   ],
-  "speakerNotes": "这是演讲者备注，约200字的演讲稿。包含：1）如何引入本页话题 2）需要强调的关键数据或观点 3）可以举的例子或类比 4）如何过渡到下一页。语气专业但不失亲和力。",
+  "speakerNotes": "演讲者备注，约200字的演讲稿。包含：1）如何引入话题 2）需要强调的关键数据或观点 3）可以举的例子或类比 4）如何过渡到下一页。语气专业但不失亲和力。注意：不要使用'本页'、'这一页'等表述。",
   "imageCount": 1,
   "imageKeywords": ["technology", "innovation", "digital transformation"],
   "dataValue": "89%",
@@ -89,9 +89,9 @@ PPT 主题: ${topic}
 
 字段说明：
 - **layout**: 必填，根据内容选择最合适的布局类型
-- **content**: 必填，200-300字的详细描述
-- **items**: 可选，要点列表（classic/timeline/comparison 布局需要）
-- **speakerNotes**: 必填，给演讲者的演讲稿（200字左右）
+- **content**: 必填，200-300字的详细描述，直接陈述内容，不要使用"本页"、"这一页"、"这部分"等自我指涉表达
+- **items**: 可选，要点列表（classic/timeline/comparison 布局需要），每项直接陈述要点
+- **speakerNotes**: 必填，给演讲者的演讲稿（200字左右），自然流畅，不要出现"本页"、"这一页"等表述
 - **imageCount**: 可选，需要的图片数量（1-4张），image-grid 布局时必须指定 2-4
 - **imageKeywords**: 可选，图片搜索关键词数组（英文），帮助生成更准确的配图
 - **dataValue**: big-data 布局必填
@@ -107,22 +107,25 @@ PPT 主题: ${topic}
   - values: 对应的数值数组（如[65, 78, 82, 95]），必须与labels长度一致
 - 数据必须真实可信，符合主题内容
 
-要求：
-1. content 必须详实，包含具体数据、百分比、案例等
-2. items 每项都应该是完整的陈述句，不只是标题
-3. 如果选择 big-data 布局，必须提供真实合理的 dataValue 和 dataLabel
-4. **如果选择 chart 布局，必须提供：**
-   - chartType: "bar"(柱状图-适合对比)、"pie"(饼图-适合占比)、"line"(折线图-适合趋势)、"area"(面积图-适合累积)
-   - chartData: 包含真实数据的数组，数据要有逻辑性和可信度
-   - 数据标签(labels)要清晰明确，数值(values)要符合实际业务场景
-5. 内容要符合"${slideOutline.title}"的主题，与"${slideOutline.desc}"的描述一致
-6. 数据要真实可信，避免空洞内容
-7. **重要**: 必须提供 speakerNotes 字段，这是给演讲者的200字左右的演讲稿，帮助演讲者更好地讲解这一页。包含：
-   - 如何开场引入这一页
-   - 需要强调的关键点（特别是图表数据的关键洞察）
-   - 可以补充的数据或例子
-   - 如何与观众互动
-   - 如何过渡到下一页
+核心要求：
+1. **内容纯粹性**: 所有文字内容（content、items、speakerNotes）都要直接表达观点和信息，绝对不要使用"本页"、"这一页"、"这部分"、"该页面"等自我指涉的表达方式
+2. content 必须详实，包含具体数据、百分比、案例等，采用陈述句直接表达
+3. items 每项都应该是完整的陈述句，不只是标题，直接说明要点
+4. speakerNotes 应该像真实演讲稿一样自然流畅，用"我们看到..."、"数据显示..."、"接下来探讨..."等表达，而不是"本页展示..."
+5. 如果选择 big-data 布局，必须提供真实合理的 dataValue 和 dataLabel
+6. 如果选择 chart 布局，必须提供完整的 chartType 和 chartData，数据要有逻辑性和可信度
+7. 内容要符合"${slideOutline.title}"的主题，与"${slideOutline.desc}"的描述一致
+8. 数据要真实可信，避免空洞内容
+
+示例对比：
+❌ 错误："本页主要介绍了人工智能的发展历程"
+✅ 正确："人工智能经历了三次重要的发展浪潮，从1956年达特茅斯会议开始..."
+
+❌ 错误："这一页展示了用户增长数据"
+✅ 正确："用户数量在过去一年实现了300%的增长，从20万增至80万"
+
+❌ 错误："该部分说明了产品的核心优势"
+✅ 正确："产品拥有三大核心优势：性能提升50%、成本降低30%、部署时间缩短至2小时"
 
 请直接返回 JSON，不要有其他说明文字。`;
 
@@ -136,9 +139,9 @@ PPT 主题: ${topic}
     // 返回默认结构或解析结果
     const defaultData = {
         layout: "classic",
-        content: "生成失败",
+        content: "内容生成失败，请重新生成",
         items: [],
-        speakerNotes: "本页内容生成失败，请重新生成。",
+        speakerNotes: "内容生成遇到问题，建议重新生成以获取完整内容。",
         imageCount: 1,
         imageKeywords: [],
         dataValue: "",
@@ -181,9 +184,9 @@ export async function generateAllSlides(topic, outlineArray, config, onProgress 
             results.push({
                 layout: "classic",
                 title: outlineArray[i].title,
-                content: "生成失败，请重试",
+                content: "内容生成失败，请重试",
                 items: [],
-                speakerNotes: "本页内容生成失败，请重新生成。",
+                speakerNotes: "内容生成遇到问题，建议重新生成以获取完整内容。",
                 imgLoading: false,
                 isRegenerating: false
             });

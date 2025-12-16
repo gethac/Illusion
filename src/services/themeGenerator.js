@@ -4,6 +4,7 @@
  */
 
 import { createChatCompletion } from './openai.js';
+import { PPT_THEMES } from '../config/themes.js';
 
 /**
  * 生成沉浸式界面配色方案
@@ -14,18 +15,29 @@ import { createChatCompletion } from './openai.js';
  * @returns {Promise<Object>} 配色方案对象
  */
 export async function generateImmersiveTheme(topic, additionalInfo, selectedThemeKey, config) {
+    // 获取当前PPT主题的实际颜色
+    const pptTheme = PPT_THEMES[selectedThemeKey] || PPT_THEMES['business'];
+
     const prompt = `你是一个专业的UI设计师和配色专家。请为以下PPT生成一套沉浸式预览界面的配色方案。
 
 PPT主题: ${topic}
 补充信息: ${additionalInfo || '无'}
-当前PPT风格: ${selectedThemeKey}
+当前PPT风格: ${pptTheme.name} (${selectedThemeKey})
+
+**PPT主题当前配色（必须参考）:**
+- 背景色: ${pptTheme.colors.bg}
+- 文字颜色: ${pptTheme.colors.text}
+- 强调色: ${pptTheme.colors.accent}
+- 边框色: ${pptTheme.colors.border}
+- 预览背景: ${pptTheme.previewBg}
 
 要求：
-1. 配色方案要与PPT主题高度契合，营造沉浸式氛围
-2. 考虑色彩心理学，选择能强化主题情感的颜色
-3. 确保良好的对比度和可读性
-4. 背景色可以是渐变或纯色
-5. 强调色要醒目但不刺眼
+1. **必须基于上述PPT主题颜色生成配色**，保持视觉一致性
+2. 可以使用PPT主题的强调色作为沉浸式界面的主色或强调色
+3. 背景色应该比PPT背景更深/更暗，营造沉浸感
+4. 文字颜色必须与背景色形成足够对比度（至少4.5:1）
+5. 可以使用PPT颜色的深色或浅色变体，但要保持色相一致
+6. 如果PPT是浅色系，沉浸式界面用深色背景；如果PPT是深色系，继续用深色但调整对比度
 
 请返回JSON格式的配色方案，包含以下字段：
 
@@ -56,12 +68,17 @@ PPT主题: ${topic}
   }
 }
 
-配色建议：
-- 商务/学术主题: 使用深蓝、灰色系，专业稳重
-- 科技主题: 使用蓝紫、青色系，带有渐变效果
-- 创意主题: 使用鲜艳对比色，活力四射
-- 自然主题: 使用绿色、棕色系，温暖舒适
-- 复古主题: 使用暖色调、低饱和度
+配色建议（请严格遵循PPT主题色）:
+- 对于 "${pptTheme.name}" 主题，必须使用 ${pptTheme.colors.accent} 作为核心强调色
+- primary/secondary 应该是 ${pptTheme.colors.accent} 的变体（深色或浅色版本）
+- 背景渐变应该使用与 ${pptTheme.colors.bg} 和 ${pptTheme.colors.accent} 相近的色系
+- 文字颜色应该与PPT文字色 ${pptTheme.colors.text} 相呼应
+- 确保所有文字在背景上清晰可读
+
+示例色彩策略：
+- 如果强调色是蓝色(${pptTheme.colors.accent})，沉浸式背景用深蓝渐变，主色用该蓝色
+- 如果强调色是金色，沉浸式主题应该保持金色系，配合深色背景
+- 保持色温一致：冷色系配冷色，暖色系配暖色
 
 直接返回JSON，不要有其他解释文字。`;
 

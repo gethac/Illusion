@@ -124,10 +124,13 @@ export async function generateSlideImage(slideTitle, slideContent, theme, config
  * @param {Object} config - API 配置
  * @param {string} imageSource - 图片源 ('ai', 'web')
  * @param {number} count - 需要生成的图片数量
- * @returns {Promise<Array<string>>} base64 格式的图片数据数组
+ * @param {Function} onProgress - 进度回调函数 (current, total, success, failed)
+ * @returns {Promise<Object>} { images: Array<string>, failedIndexes: Array<number> }
  */
-export async function generateMultipleImages(slideTitle, slideContent, imageKeywords, theme, config, imageSource = 'ai', count = 2) {
+export async function generateMultipleImages(slideTitle, slideContent, imageKeywords, theme, config, imageSource = 'ai', count = 2, onProgress = null) {
     const images = [];
+    const failedIndexes = [];
+    let successCount = 0;
 
     for (let i = 0; i < count; i++) {
         try {
@@ -143,25 +146,44 @@ export async function generateMultipleImages(slideTitle, slideContent, imageKeyw
                     config
                 );
                 images.push(base64);
+                successCount++;
             } else if (imageSource === 'web') {
                 const searchResults = await searchSlideImages(slideTitle, keywords, config);
                 if (searchResults.length > i) {
                     // 下载并转换为 base64
                     const base64 = await downloadImageAsBase64(searchResults[i].url);
                     images.push(base64);
+                    successCount++;
                 } else {
-                    // 没有足够的图片，使用占位符
+                    // 没有足够的图片
                     console.warn(`未找到第 ${i + 1} 张图片`);
                     images.push(null);
+                    failedIndexes.push(i);
                 }
+            }
+
+            // 调用进度回调
+            if (onProgress) {
+                onProgress(i + 1, count, successCount, failedIndexes.length);
             }
         } catch (error) {
             console.error(`生成第 ${i + 1} 张图片失败:`, error);
             images.push(null);
+            failedIndexes.push(i);
+
+            // 调用进度回调
+            if (onProgress) {
+                onProgress(i + 1, count, successCount, failedIndexes.length);
+            }
         }
     }
 
-    return images.filter(img => img !== null); // 过滤掉失败的图片
+    return {
+        images: images.filter(img => img !== null), // 过滤掉失败的图片
+        failedIndexes, // 返回失败的索引
+        successCount,
+        totalCount: count
+    };
 }
 
 /**
