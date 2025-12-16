@@ -311,6 +311,6 @@ MIT License
 
 **幻境 PPT 助手 - 让创作回归思想本身** ✨
 
-Made with 💫 by Claude Code
+Made with by gethac
 
 </div>
