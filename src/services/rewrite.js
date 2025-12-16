@@ -1,4 +1,4 @@
-import { callOpenAI } from './openai'
+import { createChatCompletion } from './openai'
 
 /**
  * AI重写服务 - 提供三种重写模式
@@ -79,11 +79,9 @@ export async function rewriteText(text, mode, config, signal = null) {
 
   try {
     // 调用OpenAI API
-    const result = await callOpenAI({
-      baseUrl: config.baseUrl,
-      apiKey: config.apiKey,
-      model: config.textModel,
-      messages: [
+    const result = await createChatCompletion(
+      config,
+      [
         {
           role: 'system',
           content: '你是一位专业的文本编辑专家，擅长优化和改写各类文本内容。'
@@ -93,9 +91,9 @@ export async function rewriteText(text, mode, config, signal = null) {
           content: prompt
         }
       ],
-      temperature: 0.7,
-      max_tokens: 1000
-    }, signal)
+      0.7,
+      signal
+    )
 
     // 清理返回结果
     let rewrittenText = result.trim()
