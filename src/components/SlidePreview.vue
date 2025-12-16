@@ -57,7 +57,7 @@
              @dragover.prevent="handleSlideDragOver(index, $event)"
              @drop="handleSlideDrop(index, $event)"
              @dragend="handleSlideDragEnd"
-             class="thumbnail-card rounded-lg overflow-hidden cursor-pointer transition-all relative"
+             class="thumbnail-card rounded-lg overflow-hidden cursor-pointer transition-all relative group"
              :class="{
                'ring-2 ring-[var(--accent-gold)]': selectedIndex === index,
                'opacity-60': slide.isGenerating,
@@ -77,24 +77,53 @@
             <Icon name="grip-vertical" :size="12" class="text-[#8a9a9a]"/>
           </div>
 
-          <div class="aspect-video bg-black/60 p-3 flex flex-col">
-            <div class="text-white text-[10px] font-bold mb-1 truncate">{{ slide.title }}</div>
-            <div v-if="!slide.isGenerating" class="text-[#8a9a9a] text-[8px] line-clamp-3">{{ slide.content }}</div>
-            <div v-else class="text-[var(--accent-cyan)] text-[8px]">生成中...</div>
-            <div v-if="slide.items && slide.items.length && !slide.isGenerating" class="mt-auto">
-              <div v-for="i in Math.min(2, slide.items.length)" :key="i"
-                   class="text-[#6fffe9] text-[7px] flex items-center gap-1">
-                <div class="w-1 h-1 rounded-full bg-[var(--accent-gold)]"></div>
-                <div class="truncate">{{ slide.items[i-1] }}</div>
+          <!-- 缩略图内容 -->
+          <div class="aspect-video bg-black/60 p-3 flex flex-col" :style="{ background: currentTheme.previewBg }">
+            <!-- 根据布局类型显示不同内容 -->
+            <div v-if="slide.layout === 'big-data'" class="flex-1 flex flex-col items-center justify-center">
+              <div class="text-xl font-bold mb-1" :style="{ color: currentTheme.colors.accent }">
+                {{ slide.dataValue || '89%' }}
+              </div>
+              <div class="text-[8px] text-center" :style="{ color: currentTheme.colors.text }">
+                {{ slide.dataLabel || slide.title }}
               </div>
             </div>
+
+            <div v-else class="flex-1 flex flex-col">
+              <!-- 标题 -->
+              <div class="text-white text-[10px] font-bold mb-1 truncate">{{ slide.title }}</div>
+              <div class="h-px w-6 mb-2" :style="{ background: currentTheme.colors.accent }"></div>
+
+              <!-- 内容和列表 -->
+              <div v-if="!slide.isGenerating" class="flex-1 flex gap-2">
+                <!-- 文字部分 -->
+                <div class="flex-1 min-w-0">
+                  <div class="text-[#8a9a9a] text-[8px] line-clamp-2 mb-1">{{ slide.content }}</div>
+                  <div v-if="slide.items && slide.items.length" class="space-y-0.5">
+                    <div v-for="i in Math.min(3, slide.items.length)" :key="i"
+                         class="text-[#6fffe9] text-[7px] flex items-center gap-1">
+                      <div class="w-1 h-1 rounded-full" :style="{ background: currentTheme.colors.accent }"></div>
+                      <div class="truncate">{{ slide.items[i-1] }}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 图片预览（如果有） -->
+                <div v-if="slide.imgData" class="w-12 h-12 rounded overflow-hidden shrink-0 border border-white/10">
+                  <img :src="'data:image/png;base64,' + slide.imgData" class="w-full h-full object-cover">
+                </div>
+              </div>
+              <div v-else class="text-[var(--accent-cyan)] text-[8px]">生成中...</div>
+            </div>
           </div>
+
+          <!-- 底部信息栏 -->
           <div class="p-2 bg-black/40 text-[#8a9a9a] text-xs flex items-center justify-between">
             <div class="flex items-center gap-1">
               <Icon name="file-text" :size="12"/>
               第 {{ index + 1 }} 页
             </div>
-            <div class="text-[8px]">{{ slide.layout }}</div>
+            <div class="text-[8px] opacity-70">{{ slide.layout }}</div>
           </div>
 
           <!-- 拖拽指示器 -->
@@ -106,7 +135,7 @@
       <div class="flex-1 flex flex-col overflow-hidden">
         <!-- 封面预览 -->
         <div v-if="selectedIndex === -1" class="flex-1 flex items-center justify-center p-8">
-          <div class="w-full max-w-4xl aspect-video rounded-xl shadow-2xl overflow-hidden"
+          <div class="w-full max-w-5xl aspect-video rounded-xl shadow-2xl overflow-hidden"
                :style="{ background: currentTheme.previewBg }">
             <div class="w-full h-full flex flex-col items-center justify-center relative">
               <!-- 顶部装饰线 -->
@@ -114,17 +143,17 @@
                    :style="{ background: currentTheme.colors.accent }"></div>
 
               <div class="text-center px-12">
-                <div class="text-sm font-bold mb-3 tracking-widest opacity-60"
+                <div class="text-base font-bold mb-4 tracking-widest opacity-60"
                      :style="{ color: currentTheme.colors.accent }">
                   PRESENTATION
                 </div>
-                <h1 class="text-4xl font-bold mb-4"
+                <h1 class="text-5xl font-bold mb-6"
                     :style="{ color: currentTheme.colors.text }">
                   {{ topic }}
                 </h1>
-                <div class="w-24 h-0.5 mx-auto mb-4"
+                <div class="w-32 h-0.5 mx-auto mb-6"
                      :style="{ background: currentTheme.colors.accent }"></div>
-                <div class="text-sm opacity-50"
+                <div class="text-base opacity-50"
                      :style="{ color: currentTheme.colors.text }">
                   {{ new Date().toLocaleDateString() }}
                 </div>
@@ -140,39 +169,39 @@
         <!-- 内容页预览 + 编辑 -->
         <div v-else class="flex-1 flex flex-col overflow-hidden">
           <div class="flex-1 flex items-center justify-center p-8 overflow-y-auto custom-scrollbar">
-            <div class="w-full max-w-4xl aspect-video rounded-xl shadow-2xl overflow-hidden"
+            <div class="w-full max-w-5xl aspect-video rounded-xl shadow-2xl overflow-hidden"
                  :style="{ background: currentTheme.previewBg }">
-              <div class="w-full h-full p-8 flex flex-col">
+              <div class="w-full h-full p-12 flex flex-col">
                 <!-- 标题 -->
-                <div class="flex items-center gap-3 mb-4">
-                  <h2 class="flex-1 text-2xl font-bold"
+                <div class="flex items-center gap-3 mb-6">
+                  <h2 class="flex-1 text-3xl font-bold"
                       :style="{ color: currentTheme.colors.text }">
                     {{ currentSlide.title }}
                   </h2>
                 </div>
-                <div class="w-32 h-0.5 mb-6"
+                <div class="w-40 h-0.5 mb-8"
                      :style="{ background: currentTheme.colors.accent }"></div>
 
                 <!-- 内容区域 - 根据布局类型渲染 -->
                 <div class="flex-1 overflow-y-auto custom-scrollbar">
                   <!-- Classic 布局 -->
-                  <div v-if="currentSlide.layout === 'classic'" class="flex gap-6 h-full">
-                    <div class="flex-1 space-y-4">
-                      <p class="text-sm leading-relaxed"
+                  <div v-if="currentSlide.layout === 'classic'" class="flex gap-8 h-full">
+                    <div class="flex-1 space-y-6">
+                      <p class="text-base leading-relaxed"
                          :style="{ color: currentTheme.colors.text }">
                         {{ currentSlide.content }}
                       </p>
-                      <ul class="space-y-2">
+                      <ul class="space-y-3">
                         <li v-for="(item, i) in currentSlide.items" :key="i"
-                            class="flex items-start gap-2 text-sm"
+                            class="flex items-start gap-3 text-base"
                             :style="{ color: currentTheme.colors.text }">
-                          <span class="text-xs mt-0.5" :style="{ color: currentTheme.colors.accent }">●</span>
+                          <span class="text-sm mt-1" :style="{ color: currentTheme.colors.accent }">●</span>
                           <span>{{ item }}</span>
                         </li>
                       </ul>
                     </div>
                     <div v-if="currentSlide.imgData"
-                         class="w-64 h-64 rounded-lg overflow-hidden shadow-lg shrink-0">
+                         class="w-80 h-80 rounded-lg overflow-hidden shadow-lg shrink-0">
                       <img :src="'data:image/png;base64,' + currentSlide.imgData"
                            class="w-full h-full object-cover">
                     </div>
@@ -180,17 +209,17 @@
 
                   <!-- Big Data 布局 -->
                   <div v-else-if="currentSlide.layout === 'big-data'" class="flex flex-col items-center justify-center h-full text-center">
-                    <div class="text-8xl font-bold mb-4"
+                    <div class="text-9xl font-bold mb-6"
                          :style="{ color: currentTheme.colors.accent }">
                       {{ currentSlide.dataValue || '89%' }}
                     </div>
-                    <div class="text-2xl font-bold mb-3"
+                    <div class="text-3xl font-bold mb-4"
                          :style="{ color: currentTheme.colors.text }">
                       {{ currentSlide.dataLabel || currentSlide.title }}
                     </div>
-                    <div class="w-24 h-0.5 mb-4"
+                    <div class="w-32 h-0.5 mb-6"
                          :style="{ background: currentTheme.colors.accent }"></div>
-                    <p class="text-sm max-w-2xl"
+                    <p class="text-base max-w-3xl"
                        :style="{ color: currentTheme.colors.text }">
                       {{ currentSlide.content }}
                     </p>
@@ -198,7 +227,7 @@
 
                   <!-- Chart 布局 -->
                   <div v-else-if="currentSlide.layout === 'chart'" class="flex flex-col h-full">
-                    <p class="text-sm mb-4" :style="{ color: currentTheme.colors.text }">
+                    <p class="text-base mb-6" :style="{ color: currentTheme.colors.text }">
                       {{ currentSlide.content }}
                     </p>
                     <div class="flex-1">
@@ -212,16 +241,16 @@
                   </div>
 
                   <!-- 其他布局使用 Classic 作为后备 -->
-                  <div v-else class="space-y-4">
-                    <p class="text-sm leading-relaxed"
+                  <div v-else class="space-y-6">
+                    <p class="text-base leading-relaxed"
                        :style="{ color: currentTheme.colors.text }">
                       {{ currentSlide.content }}
                     </p>
-                    <ul class="space-y-2">
+                    <ul class="space-y-3">
                       <li v-for="(item, i) in currentSlide.items" :key="i"
-                          class="flex items-start gap-2 text-sm"
+                          class="flex items-start gap-3 text-base"
                           :style="{ color: currentTheme.colors.text }">
-                        <span class="text-xs mt-0.5" :style="{ color: currentTheme.colors.accent }">●</span>
+                        <span class="text-sm mt-1" :style="{ color: currentTheme.colors.accent }">●</span>
                         <span>{{ item }}</span>
                       </li>
                     </ul>
@@ -229,7 +258,7 @@
                 </div>
 
                 <!-- 页码 -->
-                <div class="text-xs text-right mt-4 opacity-50"
+                <div class="text-sm text-right mt-6 opacity-50"
                      :style="{ color: currentTheme.colors.text }">
                   {{ selectedIndex + 1 }} / {{ slides.length }}
                 </div>

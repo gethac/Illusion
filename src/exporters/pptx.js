@@ -11,9 +11,9 @@ import { cleanHex } from '../utils/helpers.js';
  * @param {Array} slides - 幻灯片数据数组
  * @param {Object} theme - 当前主题配置
  * @param {string} themeKey - 主题 key
- * @param {Object} pptConfig - PPT 配置 { templateBg, themeColor }
+ * @param {Object} pptConfig - PPT 配置 { templateBg, themeColor }（可选）
  */
-export function exportToPPTX(topic, slides, theme, themeKey, pptConfig) {
+export function exportToPPTX(topic, slides, theme, themeKey, pptConfig = {}) {
     const pptx = new PptxGenJS();
     pptx.layout = 'LAYOUT_16x9';
 
@@ -41,7 +41,7 @@ export function exportToPPTX(topic, slides, theme, themeKey, pptConfig) {
     });
 
     // 导出文件
-    pptx.writeFile({ fileName: `${topic || 'Presentation'}.pptx` });
+    pptx.writeFile({ fileName: `${themeKey || topic || 'Presentation'}.pptx` });
 }
 
 /**
