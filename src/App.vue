@@ -377,10 +377,29 @@
                       @export="handleExportPPT"
                       @update-slide="handleUpdateSlide"
                       @reorder-slides="handleReorderSlides"
+                      @open-immersive="presentationStore.toggleImmersivePreview()"
         />
 
       </transition>
     </div>
+
+    <!-- 沉浸式预览（全屏覆盖层） -->
+    <ImmersivePreview
+      :show="presentationStore.showImmersivePreview"
+      :topic="presentationStore.topic"
+      :slides="presentationStore.slides"
+      :theme="themes[presentationStore.currentThemeKey]"
+      :config="{
+        baseUrl: configStore.baseUrl,
+        apiKey: configStore.apiKey,
+        textModel: configStore.textModel
+      }"
+      :immersive-theme="presentationStore.immersiveTheme"
+      :is-generating="presentationStore.isGenerating"
+      @close="presentationStore.toggleImmersivePreview()"
+      @export="handleExportPPT"
+      @update-immersive-theme="handleUpdateImmersiveTheme"
+    />
   </div>
 </template>
 
@@ -392,11 +411,13 @@ import Icon from './components/Icon.vue'
 import Chart from './components/Chart.vue'
 import FileUpload from './components/FileUpload.vue'
 import SlidePreview from './components/SlidePreview.vue'
+import ImmersivePreview from './components/ImmersivePreview.vue'
 import { generateOutline } from './generators/outline'
 import { generateSlideContent } from './generators/content'
 import { exportToPPTX } from './exporters/pptx'
 import { PPT_THEMES } from './config/themes'
 import { rewriteText, getRewriteMode } from './services/rewrite'
+import { generateImmersiveTheme, getDefaultImmersiveTheme } from './services/themeGenerator'
 
 // Stores
 const configStore = useConfigStore()
@@ -643,6 +664,33 @@ const startFullGeneration = async () => {
 
   presentationStore.finishGeneration(true)
   console.log('生成已完成，isGenerating:', presentationStore.isGenerating)
+
+  // 生成沉浸式主题配色（后台异步进行，不阻塞用户操作）
+  generateImmersiveThemeAsync()
+}
+
+// 异步生成沉浸式主题
+async function generateImmersiveThemeAsync() {
+  try {
+    console.log('开始生成沉浸式主题配色...')
+    const theme = await generateImmersiveTheme(
+      presentationStore.topic,
+      presentationStore.additionalInfo,
+      presentationStore.currentThemeKey,
+      {
+        baseUrl: configStore.baseUrl,
+        apiKey: configStore.apiKey,
+        textModel: configStore.textModel
+      }
+    )
+    presentationStore.setImmersiveTheme(theme)
+    console.log('✨ 沉浸式主题已生成:', theme.name)
+  } catch (error) {
+    console.warn('沉浸式主题生成失败，使用默认主题:', error)
+    // 使用默认主题
+    const defaultTheme = getDefaultImmersiveTheme(presentationStore.currentThemeKey)
+    presentationStore.setImmersiveTheme(defaultTheme)
+  }
 }
 
 const handleExportPPT = async () => {
@@ -683,6 +731,11 @@ const handleContentExtracted = (content) => {
   } else {
     presentationStore.additionalInfo += '\n\n' + content
   }
+}
+
+// 处理沉浸式主题更新
+const handleUpdateImmersiveTheme = (theme) => {
+  presentationStore.setImmersiveTheme(theme)
 }
 
 onMounted(() => {

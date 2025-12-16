@@ -27,6 +27,14 @@
         <Icon name="download" :size="16"/>
         导出 PPT
       </button>
+
+      <button @click="$emit('open-immersive')"
+              :disabled="isGenerating"
+              class="game-btn px-6 py-2 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-gold)] text-[#0a1111] font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              title="沉浸式全屏预览 (F11)">
+        <Icon name="maximize" :size="16"/>
+        沉浸式预览
+      </button>
     </div>
 
     <!-- 主体区域：左侧缩略图 + 右侧预览 -->
@@ -373,7 +381,7 @@ const props = defineProps({
   generationLog: String
 })
 
-const emit = defineEmits(['back', 'export', 'update-slide', 'reorder-slides'])
+const emit = defineEmits(['back', 'export', 'update-slide', 'reorder-slides', 'open-immersive'])
 
 const selectedIndex = ref(-1)
 const isRegenerating = ref(false)
