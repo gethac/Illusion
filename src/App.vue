@@ -115,10 +115,104 @@
           <div v-if="error" class="text-red-400 text-xs">{{ error }}</div>
         </div>
 
-        <!-- Placeholder for other steps -->
-        <div v-else key="other" class="text-white text-center">
-          <p>步骤 {{ step }} 开发中...</p>
-          <button @click="prevStep" class="mt-4 game-btn px-6 py-2 bg-[#d4b778] text-[#0a1111] font-bold">返回</button>
+        <!-- STEP 3: 大纲确认 -->
+        <div v-else-if="step === 3" key="step3" class="game-container w-full max-w-4xl p-8 rounded-xl h-[75vh] flex flex-col">
+          <div class="flex justify-between items-center mb-6 shrink-0">
+            <div>
+              <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-widest uppercase">Step 03 // Structure</div>
+              <h2 class="text-2xl font-bold text-white">确认战术大纲</h2>
+            </div>
+            <button @click="handleAddOutlineItem" class="px-3 py-1 border border-[#6fffe9]/30 text-[#6fffe9] hover:bg-[#6fffe9]/10 rounded text-xs flex items-center gap-1 transition-colors">
+              <Icon name="plus" :size="14"/> 增援节点
+            </button>
+          </div>
+          <div class="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-3">
+            <div v-for="(item, index) in presentationStore.outline" :key="index" class="group flex items-start gap-4 p-4 bg-black/40 border border-white/5 rounded-lg hover:border-[var(--accent-gold)] transition-colors relative">
+              <div class="text-[#8a9a9a] font-mono text-xs mt-2 w-6">{{ String(index + 1).padStart(2, '0') }}</div>
+              <div class="flex-1 space-y-2">
+                <input v-model="item.title" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-gold)] text-white font-bold text-sm outline-none">
+                <textarea v-model="item.desc" rows="1" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-cyan)] text-[#8a9a9a] text-xs outline-none resize-none"></textarea>
+              </div>
+              <button @click="handleRemoveOutlineItem(index)" class="opacity-0 group-hover:opacity-100 text-[#8a9a9a] hover:text-red-400 absolute top-2 right-2">
+                <Icon name="x" :size="14"/>
+              </button>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-between shrink-0 pt-4 border-t border-white/10">
+            <button @click="prevStep" class="text-xs text-[#8a9a9a] hover:text-white">返回重置</button>
+            <button @click="nextStep" class="game-btn px-8 py-2 bg-[var(--accent-cyan)] text-[#0a1111] font-bold">结构确认</button>
+          </div>
+        </div>
+
+        <!-- STEP 4: 风格选择 -->
+        <div v-else-if="step === 4" key="step4" class="w-full max-w-5xl h-[80vh] flex flex-col">
+          <div class="text-center mb-8">
+            <h2 class="text-3xl font-bold text-white mb-2">选择具象化模组</h2>
+            <p class="text-[#8a9a9a] text-sm">系统 UI 保持魔法连接状态，但输出产物将适配目标维度的物理法则</p>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 overflow-y-auto custom-scrollbar pr-2">
+            <div v-for="(theme, key) in themes" :key="key"
+                 @click="presentationStore.setTheme(key)"
+                 class="style-card relative rounded-xl overflow-hidden group h-40 flex flex-col cursor-pointer"
+                 :class="{ 'ring-2 ring-[var(--accent-gold)]': presentationStore.currentThemeKey === key }">
+              <div class="flex-1 relative" :style="{background: theme.previewBg}">
+                <div class="absolute inset-0 flex flex-col items-center justify-center p-4">
+                  <div class="w-16 h-2 rounded mb-1" :style="{background: theme.colors.accent}"></div>
+                  <div class="w-10 h-2 rounded opacity-50" :style="{background: theme.colors.text}"></div>
+                </div>
+              </div>
+              <div class="p-3 bg-black/60 border-t border-white/10 flex justify-between items-center">
+                <span class="text-xs font-bold text-[#e0e0e0]">{{ theme.name }}</span>
+                <div class="w-2 h-2 rounded-full" :class="presentationStore.currentThemeKey === key ? 'bg-[var(--accent-gold)]' : 'bg-white/20'"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex justify-center gap-6 mt-auto">
+            <button @click="prevStep" class="text-xs text-[#8a9a9a] hover:text-white py-3">返回调整</button>
+            <button @click="startFullGeneration" :disabled="presentationStore.isGenerating" class="game-btn launch-btn px-12 py-3 bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-cyan)] text-[#0a1111] text-lg font-bold shadow-[0_0_30px_rgba(212,183,120,0.3)]">
+              启动生成仪式
+            </button>
+          </div>
+        </div>
+
+        <!-- STEP 5: 生成结果（简化版预览） -->
+        <div v-else-if="step === 5" key="step5" class="w-full h-full flex flex-col items-center justify-center gap-4">
+          <div class="text-center">
+            <h2 class="text-3xl font-bold text-white mb-2">正在生成演示文稿</h2>
+            <p class="text-[#8a9a9a] text-sm mb-8">
+              {{ presentationStore.generationLog }}
+            </p>
+
+            <!-- 进度条 -->
+            <div class="w-96 h-2 bg-black/60 rounded-full overflow-hidden">
+              <div class="progress-fill h-full rounded-full transition-all duration-500"
+                   :style="{ width: `${presentationStore.generationProgress}%` }"></div>
+            </div>
+
+            <!-- 已生成的幻灯片列表 -->
+            <div v-if="presentationStore.slides.length > 0" class="mt-8 max-w-2xl mx-auto">
+              <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-wider uppercase mb-4">已生成幻灯片</div>
+              <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                <div v-for="(slide, index) in presentationStore.slides" :key="index"
+                     class="p-3 bg-black/40 border border-white/10 rounded text-left flex items-center gap-3">
+                  <Icon v-if="slide.isGenerating" name="loader-2" :size="16" class="text-[var(--accent-cyan)] animate-spin"/>
+                  <Icon v-else name="check" :size="16" class="text-green-400"/>
+                  <div class="flex-1">
+                    <div class="text-white text-sm font-bold">{{ slide.title }}</div>
+                    <div class="text-[#8a9a9a] text-xs">{{ slide.layout }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <button v-if="!presentationStore.isGenerating" @click="handleExportPPT"
+                  class="game-btn px-10 py-3 bg-gradient-to-r from-[#d4b778] to-[#6fffe9] text-[#0a1111] font-bold text-lg flex items-center gap-3 mt-8">
+            <Icon name="download" :size="18"/>
+            导出具象化文件
+          </button>
         </div>
 
       </transition>
@@ -127,11 +221,14 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useConfigStore } from './stores/config'
 import { usePresentationStore } from './stores/presentation'
 import Icon from './components/Icon.vue'
 import { generateOutline } from './generators/outline'
+import { generateSlideContent } from './generators/content'
+import { exportToPPTX } from './exporters/pptx'
+import { PPT_THEMES } from './config/themes'
 
 // Stores
 const configStore = useConfigStore()
@@ -142,6 +239,7 @@ const step = ref(0)
 const isLoading = ref(false)
 const error = ref('')
 const isLaunchingGeneration = ref(false)
+const themes = PPT_THEMES
 
 // Methods
 const nextStep = () => {
@@ -185,8 +283,117 @@ const handleGenerateOutline = async () => {
   }
 }
 
+const handleAddOutlineItem = () => {
+  presentationStore.addOutlineItem({
+    title: '新增章节',
+    desc: '请编辑描述...'
+  })
+}
+
+const handleRemoveOutlineItem = (index) => {
+  presentationStore.removeOutlineItem(index)
+}
+
+const startFullGeneration = async () => {
+  // 启动仪式动画
+  isLaunchingGeneration.value = true
+
+  const canvas = document.getElementById('particle-canvas')
+  if (canvas) {
+    canvas.classList.add('launch-particle-burst')
+    setTimeout(() => canvas.classList.remove('launch-particle-burst'), 800)
+  }
+
+  const glow = document.getElementById('launch-glow')
+  if (glow) {
+    glow.classList.add('active')
+    setTimeout(() => glow.classList.remove('active'), 1200)
+  }
+
+  await new Promise(resolve => setTimeout(resolve, 400))
+
+  nextStep()
+
+  setTimeout(() => {
+    isLaunchingGeneration.value = false
+  }, 1200)
+
+  // 开始生成内容
+  presentationStore.startGeneration()
+
+  const config = {
+    baseUrl: configStore.baseUrl,
+    apiKey: configStore.apiKey,
+    textModel: configStore.textModel,
+    imageModel: configStore.imageModel
+  }
+
+  // 初始化幻灯片
+  const slides = presentationStore.outline.map(o => ({
+    title: o.title,
+    content: '等待生成...',
+    layout: 'classic',
+    items: [],
+    isGenerating: true
+  }))
+  presentationStore.setSlides(slides)
+
+  // 逐页生成
+  for (let i = 0; i < presentationStore.outline.length; i++) {
+    if (presentationStore.abortController?.signal.aborted) {
+      break
+    }
+
+    try {
+      presentationStore.updateGenerationProgress(
+        ((i / presentationStore.outline.length) * 100),
+        `正在生成第 ${i + 1}/${presentationStore.outline.length} 页...`
+      )
+
+      const slideData = await generateSlideContent(
+        presentationStore.topic,
+        presentationStore.outline[i],
+        config,
+        presentationStore.abortController?.signal
+      )
+
+      presentationStore.updateSlide(i, {
+        ...slideData,
+        title: presentationStore.outline[i].title,
+        isGenerating: false
+      })
+
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        console.log(`第 ${i + 1} 页生成被取消`)
+        break
+      }
+      console.error(`第 ${i + 1} 页生成失败:`, e)
+      presentationStore.updateSlide(i, {
+        content: '生成失败',
+        isGenerating: false
+      })
+    }
+  }
+
+  presentationStore.finishGeneration(true)
+}
+
+const handleExportPPT = async () => {
+  try {
+    const theme = themes[presentationStore.currentThemeKey]
+    await exportToPPTX(
+      presentationStore.topic,
+      presentationStore.slides,
+      theme,
+      presentationStore.currentThemeKey
+    )
+  } catch (err) {
+    alert('导出失败: ' + err.message)
+  }
+}
+
 onMounted(() => {
-  // 加载保存的配置
   configStore.loadConfig()
 })
 </script>
