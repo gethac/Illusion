@@ -12,6 +12,11 @@ export const useConfigStore = defineStore('config', () => {
   const textModel = ref('gpt-5.2')
   const imageModel = ref('dall-e-3')
 
+  // 图片源配置
+  const imageSource = ref('ai') // 'ai' | 'web'
+  const unsplashApiKey = ref('')
+  const pexelsApiKey = ref('')
+
   // PPT配置
   const pageCount = ref(8)
   const themeColor = ref('#d4b778')
@@ -29,6 +34,9 @@ export const useConfigStore = defineStore('config', () => {
         if (data.apiKey) apiKey.value = data.apiKey
         if (data.textModel) textModel.value = data.textModel
         if (data.imageModel) imageModel.value = data.imageModel
+        if (data.imageSource) imageSource.value = data.imageSource
+        if (data.unsplashApiKey) unsplashApiKey.value = data.unsplashApiKey
+        if (data.pexelsApiKey) pexelsApiKey.value = data.pexelsApiKey
         if (data.pageCount) pageCount.value = data.pageCount
         if (data.themeColor) themeColor.value = data.themeColor
         if (data.enableAnimations !== undefined) enableAnimations.value = data.enableAnimations
@@ -46,6 +54,9 @@ export const useConfigStore = defineStore('config', () => {
         apiKey: apiKey.value,
         textModel: textModel.value,
         imageModel: imageModel.value,
+        imageSource: imageSource.value,
+        unsplashApiKey: unsplashApiKey.value,
+        pexelsApiKey: pexelsApiKey.value,
         pageCount: pageCount.value,
         themeColor: themeColor.value,
         enableAnimations: enableAnimations.value
@@ -62,6 +73,9 @@ export const useConfigStore = defineStore('config', () => {
     apiKey.value = ''
     textModel.value = 'gpt-5.2'
     imageModel.value = 'dall-e-3'
+    imageSource.value = 'ai'
+    unsplashApiKey.value = ''
+    pexelsApiKey.value = ''
     pageCount.value = 8
     themeColor.value = '#d4b778'
     enableAnimations.value = true
@@ -74,6 +88,9 @@ export const useConfigStore = defineStore('config', () => {
     apiKey,
     textModel,
     imageModel,
+    imageSource,
+    unsplashApiKey,
+    pexelsApiKey,
     pageCount,
     themeColor,
     enableAnimations,
