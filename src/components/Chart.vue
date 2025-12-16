@@ -54,6 +54,39 @@ const props = defineProps({
   }
 })
 
+// 智能判断文字颜色 - 确保在任何背景下都可读
+const getSmartTextColor = () => {
+  const textCol = props.theme?.colors?.text || '#ffffff'
+
+  // 如果文字颜色太暗（亮度 < 128），强制使用浅色
+  const rgb = hexToRgb(textCol)
+  if (rgb) {
+    const brightness = (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000
+    // 如果亮度小于128（偏暗），使用白色；否则使用原色
+    return brightness < 128 ? '#ffffff' : textCol
+  }
+
+  return textCol
+}
+
+// 将十六进制颜色转换为 RGB
+const hexToRgb = (hex) => {
+  // 移除 # 号
+  hex = hex.replace(/^#/, '')
+
+  // 处理 3 位hex
+  if (hex.length === 3) {
+    hex = hex.split('').map(char => char + char).join('')
+  }
+
+  const bigint = parseInt(hex, 16)
+  return {
+    r: (bigint >> 16) & 255,
+    g: (bigint >> 8) & 255,
+    b: bigint & 255
+  }
+}
+
 // 转换图表数据为 ECharts 配置
 const chartOption = computed(() => {
   if (!props.chartData || props.chartData.length === 0) {
@@ -62,7 +95,7 @@ const chartOption = computed(() => {
 
   const series = props.chartData[0]
   const accentColor = props.theme?.colors?.accent || '#6fffe9'
-  const textColor = props.theme?.colors?.text || '#ffffff'
+  const textColor = getSmartTextColor()  // 使用智能文字颜色
 
   // 基础配置
   const baseOption = {
