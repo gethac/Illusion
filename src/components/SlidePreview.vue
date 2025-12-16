@@ -295,6 +295,16 @@
         </div>
       </div>
     </div>
+
+    <!-- 编辑对话框 -->
+    <SlideEditor
+      :show="showEditor"
+      :slide="editingSlideIndex >= 0 ? slides[editingSlideIndex] : null"
+      :slide-index="editingSlideIndex"
+      :config="config"
+      @close="showEditor = false"
+      @save="handleSaveEdit"
+    />
   </div>
 </template>
 
@@ -302,6 +312,7 @@
 import { ref, computed } from 'vue'
 import Icon from './Icon.vue'
 import Chart from './Chart.vue'
+import SlideEditor from './SlideEditor.vue'
 
 const props = defineProps({
   topic: String,
@@ -323,6 +334,10 @@ const isRegeneratingImage = ref(false)
 // 拖拽状态
 const draggingSlideIndex = ref(null)
 const dropTargetIndex = ref(null)
+
+// 编辑对话框状态
+const showEditor = ref(false)
+const editingSlideIndex = ref(-1)
 
 const currentTheme = computed(() => props.theme)
 
@@ -408,8 +423,21 @@ async function regenerateSlideImage(index, imageSource = 'ai') {
 }
 
 function editSlide(index) {
-  // TODO: 实现编辑对话框
-  alert('编辑功能开发中...')
+  if (index < 0 || index >= props.slides.length) return
+  editingSlideIndex.value = index
+  showEditor.value = true
+}
+
+// 保存编辑
+function handleSaveEdit(index, updatedData) {
+  const slide = props.slides[index]
+  emit('update-slide', index, {
+    ...slide,
+    title: updatedData.title,
+    content: updatedData.content,
+    items: updatedData.items,
+    layout: updatedData.layout
+  })
 }
 
 // 拖拽处理函数
