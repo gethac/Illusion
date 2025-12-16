@@ -87,7 +87,7 @@
         </div>
 
         <!-- STEP 2: 任务简报 -->
-        <div v-else-if="step === 2" key="step2" class="game-container p-10 rounded-2xl w-full max-w-lg text-center space-y-6">
+        <div v-else-if="step === 2" key="step2" class="game-container p-10 rounded-2xl w-full max-w-2xl text-center space-y-6">
           <div class="text-[var(--accent-gold)] text-xs font-bold tracking-widest uppercase">Step 02 // Mission</div>
           <h2 class="text-2xl font-bold text-white">输入生成指令</h2>
           <div class="space-y-4 text-left">
@@ -102,6 +102,17 @@
               </label>
               <textarea v-model="presentationStore.additionalInfo" class="magic-input w-full h-20 p-3 text-xs resize-none"
                         placeholder="例如：包含团队介绍、风格幽默、强调数据增长..."></textarea>
+            </div>
+
+            <!-- 文件上传区域 -->
+            <div>
+              <label class="text-[10px] text-[#8a9a9a] uppercase mb-2 block flex items-center gap-2">
+                <Icon name="file-up" :size="12"/> 或从文档导入
+              </label>
+              <FileUpload
+                @topic-extracted="handleTopicExtracted"
+                @content-extracted="handleContentExtracted"
+              />
             </div>
           </div>
           <div class="flex justify-between items-center pt-4">
@@ -239,6 +250,7 @@ import { useConfigStore } from './stores/config'
 import { usePresentationStore } from './stores/presentation'
 import Icon from './components/Icon.vue'
 import Chart from './components/Chart.vue'
+import FileUpload from './components/FileUpload.vue'
 import { generateOutline } from './generators/outline'
 import { generateSlideContent } from './generators/content'
 import { exportToPPTX } from './exporters/pptx'
@@ -404,6 +416,22 @@ const handleExportPPT = async () => {
     )
   } catch (err) {
     alert('导出失败: ' + err.message)
+  }
+}
+
+// 处理从文件提取的主题
+const handleTopicExtracted = (topic) => {
+  presentationStore.topic = topic
+}
+
+// 处理从文件提取的内容
+const handleContentExtracted = (content) => {
+  // 如果补充咒文为空，直接使用提取的内容
+  // 如果已有内容，追加到现有内容后面
+  if (!presentationStore.additionalInfo.trim()) {
+    presentationStore.additionalInfo = content
+  } else {
+    presentationStore.additionalInfo += '\n\n' + content
   }
 }
 
