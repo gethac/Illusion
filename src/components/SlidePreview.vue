@@ -1,0 +1,381 @@
+<template>
+  <div class="w-full h-full flex flex-col bg-[#05080a]">
+    <!-- 顶部工具栏 -->
+    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+      <div class="flex items-center gap-4">
+        <button @click="$emit('back')" class="text-[#8a9a9a] hover:text-white transition-colors">
+          <Icon name="arrow-left" :size="20"/>
+        </button>
+        <div>
+          <h2 class="text-white font-bold text-lg">{{ topic }}</h2>
+          <div class="text-[#8a9a9a] text-xs">{{ slides.length }} 张幻灯片</div>
+        </div>
+      </div>
+
+      <button @click="$emit('export')"
+              class="game-btn px-6 py-2 bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-cyan)] text-[#0a1111] font-bold flex items-center gap-2">
+        <Icon name="download" :size="16"/>
+        导出 PPT
+      </button>
+    </div>
+
+    <!-- 主体区域：左侧缩略图 + 右侧预览 -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- 左侧缩略图列表 -->
+      <div class="w-64 border-r border-white/10 overflow-y-auto custom-scrollbar p-4 space-y-3">
+        <!-- 封面缩略图 -->
+        <div @click="selectSlide(-1)"
+             class="thumbnail-card rounded-lg overflow-hidden cursor-pointer transition-all"
+             :class="{ 'ring-2 ring-[var(--accent-gold)]': selectedIndex === -1 }">
+          <div class="aspect-video bg-gradient-to-br from-[#1a1a2e] to-[#0f0f1e] p-4 flex items-center justify-center">
+            <div class="text-center">
+              <div class="text-[var(--accent-gold)] text-xs font-bold mb-1">PRESENTATION</div>
+              <div class="text-white text-sm font-bold">{{ topic }}</div>
+            </div>
+          </div>
+          <div class="p-2 bg-black/40 text-[#8a9a9a] text-xs flex items-center gap-2">
+            <Icon name="home" :size="12"/>
+            封面
+          </div>
+        </div>
+
+        <!-- 内容页缩略图 -->
+        <div v-for="(slide, index) in slides" :key="index"
+             @click="selectSlide(index)"
+             class="thumbnail-card rounded-lg overflow-hidden cursor-pointer transition-all"
+             :class="{ 'ring-2 ring-[var(--accent-gold)]': selectedIndex === index }">
+          <div class="aspect-video bg-black/60 p-3 flex flex-col">
+            <div class="text-white text-[10px] font-bold mb-1 truncate">{{ slide.title }}</div>
+            <div class="text-[#8a9a9a] text-[8px] line-clamp-3">{{ slide.content }}</div>
+            <div v-if="slide.items && slide.items.length" class="mt-auto">
+              <div v-for="i in Math.min(2, slide.items.length)" :key="i"
+                   class="text-[#6fffe9] text-[7px] flex items-center gap-1">
+                <div class="w-1 h-1 rounded-full bg-[var(--accent-gold)]"></div>
+                <div class="truncate">{{ slide.items[i-1] }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="p-2 bg-black/40 text-[#8a9a9a] text-xs flex items-center justify-between">
+            <div class="flex items-center gap-1">
+              <Icon name="file-text" :size="12"/>
+              第 {{ index + 1 }} 页
+            </div>
+            <div class="text-[8px]">{{ slide.layout }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧预览区 -->
+      <div class="flex-1 flex flex-col overflow-hidden">
+        <!-- 封面预览 -->
+        <div v-if="selectedIndex === -1" class="flex-1 flex items-center justify-center p-8">
+          <div class="w-full max-w-4xl aspect-video rounded-xl shadow-2xl overflow-hidden"
+               :style="{ background: currentTheme.previewBg }">
+            <div class="w-full h-full flex flex-col items-center justify-center relative">
+              <!-- 顶部装饰线 -->
+              <div class="absolute top-0 left-0 right-0 h-2"
+                   :style="{ background: currentTheme.colors.accent }"></div>
+
+              <div class="text-center px-12">
+                <div class="text-sm font-bold mb-3 tracking-widest opacity-60"
+                     :style="{ color: currentTheme.colors.accent }">
+                  PRESENTATION
+                </div>
+                <h1 class="text-4xl font-bold mb-4"
+                    :style="{ color: currentTheme.colors.text }">
+                  {{ topic }}
+                </h1>
+                <div class="w-24 h-0.5 mx-auto mb-4"
+                     :style="{ background: currentTheme.colors.accent }"></div>
+                <div class="text-sm opacity-50"
+                     :style="{ color: currentTheme.colors.text }">
+                  {{ new Date().toLocaleDateString() }}
+                </div>
+              </div>
+
+              <!-- 底部装饰线 -->
+              <div class="absolute bottom-0 left-0 right-0 h-2"
+                   :style="{ background: currentTheme.colors.accent }"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 内容页预览 + 编辑 -->
+        <div v-else class="flex-1 flex flex-col overflow-hidden">
+          <div class="flex-1 flex items-center justify-center p-8 overflow-y-auto custom-scrollbar">
+            <div class="w-full max-w-4xl aspect-video rounded-xl shadow-2xl overflow-hidden"
+                 :style="{ background: currentTheme.previewBg }">
+              <div class="w-full h-full p-8 flex flex-col">
+                <!-- 标题 -->
+                <div class="flex items-center gap-3 mb-4">
+                  <h2 class="flex-1 text-2xl font-bold"
+                      :style="{ color: currentTheme.colors.text }">
+                    {{ currentSlide.title }}
+                  </h2>
+                </div>
+                <div class="w-32 h-0.5 mb-6"
+                     :style="{ background: currentTheme.colors.accent }"></div>
+
+                <!-- 内容区域 - 根据布局类型渲染 -->
+                <div class="flex-1 overflow-y-auto custom-scrollbar">
+                  <!-- Classic 布局 -->
+                  <div v-if="currentSlide.layout === 'classic'" class="flex gap-6 h-full">
+                    <div class="flex-1 space-y-4">
+                      <p class="text-sm leading-relaxed"
+                         :style="{ color: currentTheme.colors.text }">
+                        {{ currentSlide.content }}
+                      </p>
+                      <ul class="space-y-2">
+                        <li v-for="(item, i) in currentSlide.items" :key="i"
+                            class="flex items-start gap-2 text-sm"
+                            :style="{ color: currentTheme.colors.text }">
+                          <span class="text-xs mt-0.5" :style="{ color: currentTheme.colors.accent }">●</span>
+                          <span>{{ item }}</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div v-if="currentSlide.imgData"
+                         class="w-64 h-64 rounded-lg overflow-hidden shadow-lg shrink-0">
+                      <img :src="'data:image/png;base64,' + currentSlide.imgData"
+                           class="w-full h-full object-cover">
+                    </div>
+                  </div>
+
+                  <!-- Big Data 布局 -->
+                  <div v-else-if="currentSlide.layout === 'big-data'" class="flex flex-col items-center justify-center h-full text-center">
+                    <div class="text-8xl font-bold mb-4"
+                         :style="{ color: currentTheme.colors.accent }">
+                      {{ currentSlide.dataValue || '89%' }}
+                    </div>
+                    <div class="text-2xl font-bold mb-3"
+                         :style="{ color: currentTheme.colors.text }">
+                      {{ currentSlide.dataLabel || currentSlide.title }}
+                    </div>
+                    <div class="w-24 h-0.5 mb-4"
+                         :style="{ background: currentTheme.colors.accent }"></div>
+                    <p class="text-sm max-w-2xl"
+                       :style="{ color: currentTheme.colors.text }">
+                      {{ currentSlide.content }}
+                    </p>
+                  </div>
+
+                  <!-- Chart 布局 -->
+                  <div v-else-if="currentSlide.layout === 'chart'" class="flex flex-col h-full">
+                    <p class="text-sm mb-4" :style="{ color: currentTheme.colors.text }">
+                      {{ currentSlide.content }}
+                    </p>
+                    <div class="flex-1">
+                      <Chart v-if="currentSlide.chartData && currentSlide.chartType"
+                             :chartType="currentSlide.chartType"
+                             :chartData="currentSlide.chartData"
+                             :theme="currentTheme"
+                             class="h-full"
+                      />
+                    </div>
+                  </div>
+
+                  <!-- 其他布局使用 Classic 作为后备 -->
+                  <div v-else class="space-y-4">
+                    <p class="text-sm leading-relaxed"
+                       :style="{ color: currentTheme.colors.text }">
+                      {{ currentSlide.content }}
+                    </p>
+                    <ul class="space-y-2">
+                      <li v-for="(item, i) in currentSlide.items" :key="i"
+                          class="flex items-start gap-2 text-sm"
+                          :style="{ color: currentTheme.colors.text }">
+                        <span class="text-xs mt-0.5" :style="{ color: currentTheme.colors.accent }">●</span>
+                        <span>{{ item }}</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- 页码 -->
+                <div class="text-xs text-right mt-4 opacity-50"
+                     :style="{ color: currentTheme.colors.text }">
+                  {{ selectedIndex + 1 }} / {{ slides.length }}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 底部编辑工具栏 -->
+          <div class="border-t border-white/10 p-4 shrink-0 bg-black/40">
+            <div class="flex items-center gap-3 justify-between max-w-4xl mx-auto">
+              <div class="flex items-center gap-2">
+                <button @click="regenerateSlideContent(selectedIndex)"
+                        :disabled="isRegenerating"
+                        class="px-3 py-1.5 bg-[var(--accent-cyan)]/20 hover:bg-[var(--accent-cyan)]/30 border border-[var(--accent-cyan)]/30 rounded text-[var(--accent-cyan)] text-xs flex items-center gap-1 transition-colors">
+                  <Icon :name="isRegenerating ? 'loader-2' : 'refresh-cw'" :size="12" :class="{ 'animate-spin': isRegenerating }"/>
+                  重新生成
+                </button>
+
+                <button @click="regenerateSlideImage(selectedIndex)"
+                        :disabled="isRegeneratingImage"
+                        class="px-3 py-1.5 bg-[var(--accent-gold)]/20 hover:bg-[var(--accent-gold)]/30 border border-[var(--accent-gold)]/30 rounded text-[var(--accent-gold)] text-xs flex items-center gap-1 transition-colors">
+                  <Icon :name="isRegeneratingImage ? 'loader-2' : 'image'" :size="12" :class="{ 'animate-spin': isRegeneratingImage }"/>
+                  重新配图
+                </button>
+
+                <button @click="editSlide(selectedIndex)"
+                        class="px-3 py-1.5 bg-white/10 hover:bg-white/20 border border-white/20 rounded text-white text-xs flex items-center gap-1 transition-colors">
+                  <Icon name="edit" :size="12"/>
+                  编辑内容
+                </button>
+              </div>
+
+              <div class="text-[#8a9a9a] text-xs">
+                布局：{{ currentSlide.layout }}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed } from 'vue'
+import Icon from './Icon.vue'
+import Chart from './Chart.vue'
+
+const props = defineProps({
+  topic: String,
+  slides: Array,
+  theme: Object,
+  config: Object,
+  outline: Array
+})
+
+const emit = defineEmits(['back', 'export', 'update-slide'])
+
+const selectedIndex = ref(-1)
+const isRegenerating = ref(false)
+const isRegeneratingImage = ref(false)
+
+const currentTheme = computed(() => props.theme)
+
+const currentSlide = computed(() => {
+  if (selectedIndex.value === -1) {
+    return { title: props.topic }
+  }
+  return props.slides[selectedIndex.value] || {}
+})
+
+function selectSlide(index) {
+  selectedIndex.value = index
+}
+
+async function regenerateSlideContent(index) {
+  if (index < 0 || index >= props.slides.length) return
+
+  isRegenerating.value = true
+  try {
+    // 导入生成器
+    const { generateSlideContent } = await import('../generators/content.js')
+
+    // 重新生成内容
+    const newSlideData = await generateSlideContent(
+      props.topic,
+      props.outline[index],
+      props.config
+    )
+
+    // 更新幻灯片
+    emit('update-slide', index, {
+      ...newSlideData,
+      title: props.outline[index].title
+    })
+  } catch (error) {
+    console.error('重新生成失败:', error)
+    alert('重新生成失败: ' + error.message)
+  } finally {
+    isRegenerating.value = false
+  }
+}
+
+async function regenerateSlideImage(index) {
+  if (index < 0 || index >= props.slides.length) return
+
+  isRegeneratingImage.value = true
+  try {
+    // 导入图片生成器
+    const { generateSlideImage } = await import('../generators/image.js')
+
+    const slide = props.slides[index]
+
+    // 重新生成配图
+    const imageResult = await generateSlideImage(
+      slide.title,
+      slide.content,
+      currentTheme.value,
+      props.config,
+      props.config.imageSource
+    )
+
+    // 更新图片数据
+    if (imageResult.type === 'base64') {
+      emit('update-slide', index, {
+        ...slide,
+        imgData: imageResult.data
+      })
+    } else if (imageResult.type === 'url') {
+      // 如果是 URL，需要转换为 base64
+      const { imageUrlToBase64Browser } = await import('../services/imageSearch.js')
+      const base64 = await imageUrlToBase64Browser(imageResult.data)
+      emit('update-slide', index, {
+        ...slide,
+        imgData: base64
+      })
+    }
+  } catch (error) {
+    console.error('重新配图失败:', error)
+    alert('重新配图失败: ' + error.message)
+  } finally {
+    isRegeneratingImage.value = false
+  }
+}
+
+function editSlide(index) {
+  // TODO: 实现编辑对话框
+  alert('编辑功能开发中...')
+}
+</script>
+
+<style scoped>
+.thumbnail-card {
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.thumbnail-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(111, 255, 233, 0.3);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(111, 255, 233, 0.5);
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+</style>

@@ -246,55 +246,71 @@
           </div>
         </div>
 
-        <!-- STEP 5: 生成结果（简化版预览） -->
-        <div v-else-if="step === 5" key="step5" class="w-full h-full flex flex-col items-center justify-center gap-4">
-          <div class="text-center">
-            <h2 class="text-3xl font-bold text-white mb-2">正在生成演示文稿</h2>
-            <p class="text-[#8a9a9a] text-sm mb-8">
-              {{ presentationStore.generationLog }}
-            </p>
+        <!-- STEP 5: 生成中或完整预览 -->
+        <div v-else-if="step === 5" key="step5" class="w-full h-full">
+          <!-- 正在生成时显示进度 -->
+          <div v-if="presentationStore.isGenerating"
+               class="w-full h-full flex flex-col items-center justify-center gap-4">
+            <div class="text-center">
+              <h2 class="text-3xl font-bold text-white mb-2">正在生成演示文稿</h2>
+              <p class="text-[#8a9a9a] text-sm mb-8">
+                {{ presentationStore.generationLog }}
+              </p>
 
-            <!-- 进度条 -->
-            <div class="w-96 h-2 bg-black/60 rounded-full overflow-hidden">
-              <div class="progress-fill h-full rounded-full transition-all duration-500"
-                   :style="{ width: `${presentationStore.generationProgress}%` }"></div>
-            </div>
+              <!-- 进度条 -->
+              <div class="w-96 h-2 bg-black/60 rounded-full overflow-hidden">
+                <div class="progress-fill h-full rounded-full transition-all duration-500"
+                     :style="{ width: `${presentationStore.generationProgress}%` }"></div>
+              </div>
 
-            <!-- 已生成的幻灯片列表 -->
-            <div v-if="presentationStore.slides.length > 0" class="mt-8 max-w-4xl mx-auto">
-              <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-wider uppercase mb-4">已生成幻灯片</div>
-              <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
-                <div v-for="(slide, index) in presentationStore.slides" :key="index"
-                     class="p-4 bg-black/40 border border-white/10 rounded-lg hover:border-white/20 transition-colors">
-                  <div class="flex items-start gap-3 mb-2">
-                    <Icon v-if="slide.isGenerating" name="loader-2" :size="16" class="text-[var(--accent-cyan)] animate-spin mt-1"/>
-                    <Icon v-else name="check" :size="16" class="text-green-400 mt-1"/>
-                    <div class="flex-1">
-                      <div class="text-white text-sm font-bold">{{ slide.title }}</div>
-                      <div class="text-[#8a9a9a] text-xs">{{ slide.layout }}</div>
+              <!-- 已生成的幻灯片列表 -->
+              <div v-if="presentationStore.slides.length > 0" class="mt-8 max-w-4xl mx-auto">
+                <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-wider uppercase mb-4">已生成幻灯片</div>
+                <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
+                  <div v-for="(slide, index) in presentationStore.slides" :key="index"
+                       class="p-4 bg-black/40 border border-white/10 rounded-lg hover:border-white/20 transition-colors">
+                    <div class="flex items-start gap-3 mb-2">
+                      <Icon v-if="slide.isGenerating" name="loader-2" :size="16" class="text-[var(--accent-cyan)] animate-spin mt-1"/>
+                      <Icon v-else name="check" :size="16" class="text-green-400 mt-1"/>
+                      <div class="flex-1">
+                        <div class="text-white text-sm font-bold">{{ slide.title }}</div>
+                        <div class="text-[#8a9a9a] text-xs">{{ slide.layout }}</div>
+                      </div>
                     </div>
-                  </div>
 
-                  <!-- 图表预览 -->
-                  <div v-if="slide.layout === 'chart' && slide.chartData && slide.chartType"
-                       class="mt-3 bg-black/60 rounded p-4 border border-[var(--accent-cyan)]/20">
-                    <Chart
-                      :chartType="slide.chartType"
-                      :chartData="slide.chartData"
-                      :theme="themes[presentationStore.currentThemeKey]"
-                      class="h-48"
-                    />
+                    <!-- 图表预览 -->
+                    <div v-if="slide.layout === 'chart' && slide.chartData && slide.chartType"
+                         class="mt-3 bg-black/60 rounded p-4 border border-[var(--accent-cyan)]/20">
+                      <Chart
+                        :chartType="slide.chartType"
+                        :chartData="slide.chartData"
+                        :theme="themes[presentationStore.currentThemeKey]"
+                        class="h-48"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <button v-if="!presentationStore.isGenerating" @click="handleExportPPT"
-                  class="game-btn px-10 py-3 bg-gradient-to-r from-[#d4b778] to-[#6fffe9] text-[#0a1111] font-bold text-lg flex items-center gap-3 mt-8">
-            <Icon name="download" :size="18"/>
-            导出具象化文件
-          </button>
+          <!-- 生成完成后显示完整预览 -->
+          <SlidePreview v-else
+                        :topic="presentationStore.topic"
+                        :slides="presentationStore.slides"
+                        :theme="themes[presentationStore.currentThemeKey]"
+                        :config="{
+                          baseUrl: configStore.baseUrl,
+                          apiKey: configStore.apiKey,
+                          textModel: configStore.textModel,
+                          imageModel: configStore.imageModel,
+                          imageSource: configStore.imageSource
+                        }"
+                        :outline="presentationStore.outline"
+                        @back="prevStep"
+                        @export="handleExportPPT"
+                        @update-slide="handleUpdateSlide"
+          />
         </div>
 
       </transition>
@@ -309,6 +325,7 @@ import { usePresentationStore } from './stores/presentation'
 import Icon from './components/Icon.vue'
 import Chart from './components/Chart.vue'
 import FileUpload from './components/FileUpload.vue'
+import SlidePreview from './components/SlidePreview.vue'
 import { generateOutline } from './generators/outline'
 import { generateSlideContent } from './generators/content'
 import { exportToPPTX } from './exporters/pptx'
@@ -565,6 +582,11 @@ const handleExportPPT = async () => {
   } catch (err) {
     alert('导出失败: ' + err.message)
   }
+}
+
+// 处理幻灯片更新
+const handleUpdateSlide = (index, updatedSlide) => {
+  presentationStore.updateSlide(index, updatedSlide)
 }
 
 // 处理从文件提取的主题
