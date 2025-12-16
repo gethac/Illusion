@@ -302,150 +302,217 @@ function addBigDataLayout(slide, slideData, textCol, accentCol, fontFace) {
 }
 
 /**
- * 经典布局（文本 + 列表 + 图片）
+ * 经典布局（文本 + 列表 + 图片）- 优化版，防止重叠
  */
 function addClassicLayout(slide, slideData, textCol, accentCol, fontFace) {
-    const hasImage = slideData.imgData;
+    const hasImage = slideData.imgData || (slideData.images && slideData.images.length > 0);
     const textW = hasImage ? 5.2 : 9;
+    const maxY = 5.2; // 最大 Y 坐标，留出底部空间给页码
 
-    // 主要内容
+    let currentY = 1.3; // 当前 Y 坐标
+
+    // 主要内容 - 动态高度
     if (slideData.content) {
+        const contentLines = Math.ceil(slideData.content.length / 100); // 估算行数
+        const contentHeight = Math.min(contentLines * 0.25, 1.5); // 限制最大高度
+
         slide.addText(slideData.content, {
             x: 0.5,
-            y: 1.3,
+            y: currentY,
             w: textW,
-            h: 1.2,
+            h: contentHeight,
             fontSize: 14,
             color: textCol,
             fontFace,
             align: 'justify',
             lineSpacing: 16
         });
+
+        currentY += contentHeight + 0.3; // 内容后留0.3间距
     }
 
-    // 项目列表
+    // 项目列表 - 限制数量，防止超出边界
     if (slideData.items && slideData.items.length) {
-        const startY = slideData.content ? 2.7 : 1.3;
+        const itemHeight = 0.45; // 每个列表项的高度
+        const availableHeight = maxY - currentY;
+        const maxItems = Math.floor(availableHeight / itemHeight);
+        const displayItems = slideData.items.slice(0, maxItems);
 
-        slideData.items.forEach((item, idx) => {
+        displayItems.forEach((item, idx) => {
             slide.addText(item, {
                 x: 0.5,
-                y: startY + (idx * 0.55),
+                y: currentY + (idx * itemHeight),
                 w: textW,
                 fontSize: 13,
                 color: textCol,
                 bullet: { code: "2022", color: accentCol },
                 fontFace,
-                lineSpacing: 15
+                lineSpacing: 14
             });
         });
+
+        // 如果有省略的项目，添加提示
+        if (slideData.items.length > maxItems) {
+            const lastY = currentY + (displayItems.length * itemHeight);
+            slide.addText(`... 及其他 ${slideData.items.length - maxItems} 项`, {
+                x: 0.5,
+                y: lastY,
+                w: textW,
+                fontSize: 11,
+                color: textCol,
+                fontFace,
+                italic: true,
+                transparency: 30
+            });
+        }
     }
 
-    // 图片（圆角矩形框）
+    // 图片 - 确保不超出边界
     if (hasImage) {
-        // 添加阴影背景
-        slide.addShape('rect', {
-            x: 5.95,
-            y: 1.45,
-            w: 3.7,
-            h: 3.7,
-            fill: { color: '000000', transparency: 90 }
-        });
+        const imgData = slideData.imgData || (slideData.images && slideData.images[0]);
+        if (imgData) {
+            const imageSize = Math.min(3.7, maxY - 1.3); // 动态调整图片大小
 
-        // 添加图片
-        slide.addImage({
-            data: `image/png;base64,${slideData.imgData}`,
-            x: 5.8,
-            y: 1.3,
-            w: 3.7,
-            h: 3.7,
-            sizing: { type: "cover", w: 3.7, h: 3.7 }
-        });
+            // 添加阴影背景
+            slide.addShape('rect', {
+                x: 6.0,
+                y: 1.4,
+                w: imageSize,
+                h: imageSize,
+                fill: { color: '000000', transparency: 90 }
+            });
+
+            // 添加图片
+            slide.addImage({
+                data: `image/png;base64,${imgData}`,
+                x: 5.85,
+                y: 1.3,
+                w: imageSize,
+                h: imageSize,
+                sizing: { type: "cover", w: imageSize, h: imageSize }
+            });
+        }
     }
 }
 
 /**
- * 时间线布局
+ * 时间线布局 - 优化版，防止超出边界
  */
 function addTimelineLayout(slide, slideData, textCol, accentCol, fontFace) {
+    const maxY = 5.2;
+
     // 主要内容描述
-    slide.addText(slideData.content || '', {
-        x: 0.5,
-        y: 1.2,
-        w: 9,
-        fontSize: 12,
-        color: textCol,
-        fontFace
-    });
+    let currentY = 1.2;
+    if (slideData.content) {
+        slide.addText(slideData.content, {
+            x: 0.5,
+            y: currentY,
+            w: 9,
+            h: 0.7,
+            fontSize: 12,
+            color: textCol,
+            fontFace
+        });
+        currentY += 0.9;
+    }
 
-    // 时间线节点
+    // 时间线节点 - 限制数量
     if (slideData.items && slideData.items.length) {
-        const startY = 2.2;
-        const stepY = 0.7;
+        const stepY = 0.6;
+        const availableHeight = maxY - currentY;
+        const maxItems = Math.floor(availableHeight / stepY);
+        const displayItems = slideData.items.slice(0, maxItems);
 
-        slideData.items.forEach((item, idx) => {
-            const y = startY + (idx * stepY);
+        displayItems.forEach((item, idx) => {
+            const y = currentY + (idx * stepY);
 
             // 时间点圆圈
             slide.addShape('circle', {
                 x: 0.8,
-                y: y + 0.1,
-                w: 0.2,
-                h: 0.2,
+                y: y + 0.08,
+                w: 0.18,
+                h: 0.18,
                 fill: { color: accentCol }
             });
 
             // 连接线
-            if (idx < slideData.items.length - 1) {
+            if (idx < displayItems.length - 1) {
                 slide.addShape('line', {
-                    x: 0.9,
-                    y: y + 0.3,
+                    x: 0.89,
+                    y: y + 0.26,
                     w: 0,
-                    h: stepY - 0.2,
+                    h: stepY - 0.26,
                     line: { color: accentCol, width: 2 }
                 });
             }
 
             // 文本内容
             slide.addText(item, {
-                x: 1.3,
+                x: 1.2,
                 y: y,
-                w: 8,
+                w: 8.3,
+                h: 0.5,
                 fontSize: 11,
                 color: textCol,
-                fontFace
+                fontFace,
+                valign: 'top'
             });
         });
+
+        // 省略提示
+        if (slideData.items.length > maxItems) {
+            const lastY = currentY + (displayItems.length * stepY);
+            slide.addText(`... 还有 ${slideData.items.length - maxItems} 个步骤`, {
+                x: 1.2,
+                y: lastY,
+                w: 8.3,
+                fontSize: 10,
+                color: textCol,
+                fontFace,
+                italic: true,
+                transparency: 30
+            });
+        }
     }
 }
 
 /**
- * 对比布局（左右两列）
+ * 对比布局（左右两列）- 优化版，防止超出边界
  */
 function addComparisonLayout(slide, slideData, textCol, accentCol, fontFace) {
+    const maxY = 5.2;
+    let currentY = 1.2;
+
     // 内容描述
     if (slideData.content) {
         slide.addText(slideData.content, {
             x: 0.5,
-            y: 1.2,
+            y: currentY,
             w: 9,
+            h: 0.6,
             fontSize: 12,
             color: textCol,
             fontFace
         });
+        currentY += 0.8;
     }
 
     // 将列表项分成两列
     if (slideData.items && slideData.items.length) {
+        const itemHeight = 0.45;
+        const availableHeight = maxY - currentY - 0.4; // 减去标题高度
+        const maxItemsPerColumn = Math.floor(availableHeight / itemHeight);
+
         const midPoint = Math.ceil(slideData.items.length / 2);
-        const leftItems = slideData.items.slice(0, midPoint);
-        const rightItems = slideData.items.slice(midPoint);
+        const leftItems = slideData.items.slice(0, Math.min(midPoint, maxItemsPerColumn));
+        const rightItems = slideData.items.slice(midPoint, Math.min(slideData.items.length, midPoint + maxItemsPerColumn));
 
         // 左列标题
         slide.addText(slideData.leftTitle || '方案 A', {
             x: 0.5,
-            y: 2.0,
+            y: currentY,
             w: 4.2,
+            h: 0.4,
             fontSize: 14,
             bold: true,
             color: accentCol,
@@ -456,29 +523,32 @@ function addComparisonLayout(slide, slideData, textCol, accentCol, fontFace) {
         leftItems.forEach((item, idx) => {
             slide.addText(item, {
                 x: 0.5,
-                y: 2.5 + (idx * 0.5),
+                y: currentY + 0.5 + (idx * itemHeight),
                 w: 4.2,
+                h: 0.4,
                 fontSize: 11,
                 color: textCol,
                 bullet: { code: "2022", color: accentCol },
-                fontFace
+                fontFace,
+                valign: 'top'
             });
         });
 
         // 分隔线
         slide.addShape('line', {
             x: 5,
-            y: 1.8,
+            y: currentY - 0.1,
             w: 0,
-            h: 3.5,
+            h: Math.min(3.5, availableHeight + 0.5),
             line: { color: accentCol, width: 2, dashType: 'dash' }
         });
 
         // 右列标题
         slide.addText(slideData.rightTitle || '方案 B', {
             x: 5.3,
-            y: 2.0,
+            y: currentY,
             w: 4.2,
+            h: 0.4,
             fontSize: 14,
             bold: true,
             color: accentCol,
@@ -489,12 +559,14 @@ function addComparisonLayout(slide, slideData, textCol, accentCol, fontFace) {
         rightItems.forEach((item, idx) => {
             slide.addText(item, {
                 x: 5.3,
-                y: 2.5 + (idx * 0.5),
+                y: currentY + 0.5 + (idx * itemHeight),
                 w: 4.2,
+                h: 0.4,
                 fontSize: 11,
                 color: textCol,
                 bullet: { code: "2022", color: accentCol },
-                fontFace
+                fontFace,
+                valign: 'top'
             });
         });
     }
