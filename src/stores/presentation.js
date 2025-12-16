@@ -17,6 +17,7 @@ export const usePresentationStore = defineStore('presentation', () => {
 
   // 沉浸式主题配色
   const immersiveTheme = ref(null)
+  const isLoadingTheme = ref(false)  // 主题加载状态
 
   // UI状态
   const selectedSlideIndex = ref(-1) // -1 表示封面
@@ -164,6 +165,12 @@ export const usePresentationStore = defineStore('presentation', () => {
   // 设置沉浸式主题
   function setImmersiveTheme(theme) {
     immersiveTheme.value = theme
+    isLoadingTheme.value = false  // 主题设置完成，停止加载
+  }
+
+  // 开始加载主题
+  function startLoadingTheme() {
+    isLoadingTheme.value = true
   }
 
   // 切换沉浸式预览
@@ -213,6 +220,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     selectedSlideIndex.value = -1
     showImmersivePreview.value = false
     immersiveTheme.value = null
+    isLoadingTheme.value = false
     isGenerating.value = false
     generationProgress.value = 0
     generationLog.value = 'Waiting...'
@@ -231,6 +239,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     slides,
     currentThemeKey,
     immersiveTheme,
+    isLoadingTheme,
     selectedSlideIndex,
     showImmersivePreview,
     isGenerating,
@@ -258,6 +267,7 @@ export const usePresentationStore = defineStore('presentation', () => {
     selectSlide,
     setTheme,
     setImmersiveTheme,
+    startLoadingTheme,
     toggleImmersivePreview,
     startGeneration,
     updateGenerationProgress,

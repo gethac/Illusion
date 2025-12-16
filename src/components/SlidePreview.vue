@@ -24,13 +24,15 @@
         </div>
       </div>
 
-      <div class="flex items-center gap-3">
-        <button @click="toggleThemeEditor"
-                class="immersive-toolbar-btn"
-                title="自定义配色">
-          <Icon name="palette" :size="20"/>
-        </button>
+      <!-- 主题加载状态（主题生成中显示） -->
+      <div v-else-if="isLoadingTheme" class="flex-1 max-w-md mx-8">
+        <div class="immersive-progress-text flex items-center gap-2">
+          <Icon name="palette" :size="14" class="animate-spin"/>
+          正在生成沉浸式主题配色...
+        </div>
+      </div>
 
+      <div class="flex items-center gap-3">
         <button @click="$emit('export')"
                 :disabled="isGenerating"
                 class="immersive-export-btn"
@@ -365,31 +367,6 @@
       @close="showEditor = false"
       @save="handleSaveEdit"
     />
-
-    <!-- 主题编辑器浮层 -->
-    <Transition name="slide-up">
-      <div v-if="showThemeEditor" class="theme-editor-panel">
-        <div class="theme-editor-header">
-          <h3>自定义配色</h3>
-          <button @click="toggleThemeEditor" class="immersive-toolbar-btn">
-            <Icon name="x" :size="20"/>
-          </button>
-        </div>
-        <div class="theme-editor-body">
-          <div class="color-picker" v-for="(value, key) in editableColors" :key="key">
-            <label>{{ colorLabels[key] }}</label>
-            <input type="color" :value="value" @input="updateColor(key, $event.target.value)">
-          </div>
-          <div class="flex gap-3 mt-6">
-            <button @click="resetTheme" class="theme-editor-btn flex-1">重置</button>
-            <button @click="regenerateTheme" class="theme-editor-btn flex-1" :disabled="isRegeneratingTheme">
-              <Icon v-if="isRegeneratingTheme" name="loader-2" :size="14" class="animate-spin"/>
-              {{ isRegeneratingTheme ? '生成中...' : 'AI重新生成' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -398,7 +375,7 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import Icon from './Icon.vue'
 import Chart from './Chart.vue'
 import SlideEditor from './SlideEditor.vue'
-import { applyImmersiveTheme, removeImmersiveTheme, generateImmersiveTheme } from '../services/themeGenerator.js'
+import { applyImmersiveTheme, removeImmersiveTheme } from '../services/themeGenerator.js'
 
 const props = defineProps({
   topic: String,
@@ -409,10 +386,11 @@ const props = defineProps({
   isGenerating: Boolean,
   generationProgress: Number,
   generationLog: String,
-  immersiveTheme: Object  // 沉浸式主题配色
+  immersiveTheme: Object,  // 沉浸式主题配色
+  isLoadingTheme: Boolean  // 主题加载状态
 })
 
-const emit = defineEmits(['back', 'export', 'update-slide', 'reorder-slides', 'update-immersive-theme'])
+const emit = defineEmits(['back', 'export', 'update-slide', 'reorder-slides'])
 
 const selectedIndex = ref(-1)
 const isRegenerating = ref(false)
@@ -571,86 +549,10 @@ function handleSlideDragEnd() {
   dropTargetIndex.value = null
 }
 
-// 主题编辑器状态
-const showThemeEditor = ref(false)
-const editableColors = ref({})
-const isRegeneratingTheme = ref(false)
-
-const colorLabels = {
-  primary: '主色调',
-  secondary: '辅助色',
-  accent: '强调色',
-  surface: '表面色',
-  text: '文字颜色',
-  textSecondary: '次要文字',
-  border: '边框颜色'
-}
-
-// 切换主题编辑器
-function toggleThemeEditor() {
-  showThemeEditor.value = !showThemeEditor.value
-}
-
-// 更新颜色
-function updateColor(key, value) {
-  editableColors.value[key] = value
-  if (props.immersiveTheme && props.immersiveTheme.colors) {
-    const updatedTheme = {
-      ...props.immersiveTheme,
-      colors: {
-        ...props.immersiveTheme.colors,
-        [key]: value
-      }
-    }
-    updatedTheme.cssVariables = {
-      '--immersive-primary': updatedTheme.colors.primary,
-      '--immersive-secondary': updatedTheme.colors.secondary,
-      '--immersive-accent': updatedTheme.colors.accent,
-      '--immersive-bg': updatedTheme.colors.background,
-      '--immersive-surface': updatedTheme.colors.surface,
-      '--immersive-text': updatedTheme.colors.text,
-      '--immersive-text-secondary': updatedTheme.colors.textSecondary,
-      '--immersive-border': updatedTheme.colors.border,
-      '--immersive-shadow': updatedTheme.colors.shadow
-    }
-    applyImmersiveTheme(updatedTheme)
-    emit('update-immersive-theme', updatedTheme)
-  }
-}
-
-// 重置主题
-function resetTheme() {
-  if (props.immersiveTheme && props.immersiveTheme.colors) {
-    editableColors.value = { ...props.immersiveTheme.colors }
-    applyImmersiveTheme(props.immersiveTheme)
-  }
-}
-
-// AI重新生成主题
-async function regenerateTheme() {
-  isRegeneratingTheme.value = true
-  try {
-    const newTheme = await generateImmersiveTheme(
-      props.topic,
-      '',
-      'cyberpunk',
-      props.config
-    )
-    applyImmersiveTheme(newTheme)
-    editableColors.value = { ...newTheme.colors }
-    emit('update-immersive-theme', newTheme)
-  } catch (error) {
-    console.error('重新生成主题失败:', error)
-  } finally {
-    isRegeneratingTheme.value = false
-  }
-}
-
 // 监听immersiveTheme变化，自动应用
 watch(() => props.immersiveTheme, (newTheme) => {
   if (newTheme) {
     applyImmersiveTheme(newTheme)
-    editableColors.value = { ...newTheme.colors }
   }
 }, { immediate: true })
 
@@ -658,7 +560,6 @@ watch(() => props.immersiveTheme, (newTheme) => {
 onMounted(() => {
   if (props.immersiveTheme) {
     applyImmersiveTheme(props.immersiveTheme)
-    editableColors.value = { ...props.immersiveTheme.colors }
   }
 })
 
@@ -792,101 +693,6 @@ onUnmounted(() => {
 .thumbnail-card:hover {
   border-color: var(--immersive-primary, rgba(111, 255, 233, 0.5));
   box-shadow: 0 4px 12px var(--immersive-shadow, rgba(111, 255, 233, 0.2));
-}
-
-/* 主题编辑器面板 */
-.theme-editor-panel {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--immersive-surface, rgba(26, 26, 46, 0.95));
-  backdrop-filter: blur(20px);
-  border-top: 2px solid var(--immersive-border, rgba(212, 183, 120, 0.3));
-  padding: 2rem;
-  max-height: 400px;
-  overflow-y: auto;
-  z-index: 100;
-  box-shadow: 0 -10px 40px var(--immersive-shadow, rgba(0, 0, 0, 0.5));
-}
-
-.theme-editor-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1.5rem;
-}
-
-.theme-editor-header h3 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: var(--immersive-text, #e0e0e0);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.theme-editor-body {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
-}
-
-/* 颜色选择器 */
-.color-picker {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.color-picker label {
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: var(--immersive-text-secondary, #8a9a9a);
-}
-
-.color-picker input[type="color"] {
-  width: 100%;
-  height: 3rem;
-  border: 2px solid var(--immersive-border, rgba(212, 183, 120, 0.3));
-  border-radius: 0.5rem;
-  cursor: pointer;
-  background: var(--immersive-surface, rgba(0, 0, 0, 0.3));
-  transition: all 0.2s;
-}
-
-.color-picker input[type="color"]:hover {
-  border-color: var(--immersive-primary, #6fffe9);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px var(--immersive-shadow, rgba(111, 255, 233, 0.2));
-}
-
-/* 主题编辑器按钮 */
-.theme-editor-btn {
-  padding: 0.75rem 1.5rem;
-  background: var(--immersive-primary, #6fffe9);
-  color: var(--immersive-bg, #000);
-  border: none;
-  border-radius: 0.5rem;
-  font-weight: 700;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-}
-
-.theme-editor-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px var(--immersive-shadow, rgba(111, 255, 233, 0.3));
-  background: var(--immersive-accent, #d4b778);
-}
-
-.theme-editor-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
 }
 
 /* 自定义滚动条 */

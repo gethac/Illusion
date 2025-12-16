@@ -371,6 +371,7 @@
                       }"
                       :outline="presentationStore.outline"
                       :immersive-theme="presentationStore.immersiveTheme"
+                      :is-loading-theme="presentationStore.isLoadingTheme"
                       :is-generating="presentationStore.isGenerating"
                       :generation-progress="presentationStore.generationProgress"
                       :generation-log="presentationStore.generationLog"
@@ -378,7 +379,6 @@
                       @export="handleExportPPT"
                       @update-slide="handleUpdateSlide"
                       @reorder-slides="handleReorderSlides"
-                      @update-immersive-theme="handleUpdateImmersiveTheme"
         />
 
       </transition>
@@ -578,6 +578,9 @@ const startFullGeneration = async () => {
     isLaunchingGeneration.value = false
   }, 1200)
 
+  // 立即开始生成沉浸式主题（并行执行，不阻塞）
+  generateImmersiveThemeAsync()
+
   // 开始生成内容
   presentationStore.startGeneration()
 
@@ -646,13 +649,12 @@ const startFullGeneration = async () => {
 
   presentationStore.finishGeneration(true)
   console.log('生成已完成，isGenerating:', presentationStore.isGenerating)
-
-  // 生成沉浸式主题配色（后台异步进行，不阻塞用户操作）
-  generateImmersiveThemeAsync()
 }
 
 // 异步生成沉浸式主题
 async function generateImmersiveThemeAsync() {
+  presentationStore.startLoadingTheme()
+
   try {
     console.log('开始生成沉浸式主题配色...')
     const theme = await generateImmersiveTheme(
@@ -713,11 +715,6 @@ const handleContentExtracted = (content) => {
   } else {
     presentationStore.additionalInfo += '\n\n' + content
   }
-}
-
-// 处理沉浸式主题更新
-const handleUpdateImmersiveTheme = (theme) => {
-  presentationStore.setImmersiveTheme(theme)
 }
 
 onMounted(() => {
