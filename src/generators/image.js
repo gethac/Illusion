@@ -116,6 +116,55 @@ export async function generateSlideImage(slideTitle, slideContent, theme, config
 }
 
 /**
+ * 批量生成多张图片（用于多图布局）
+ * @param {string} slideTitle - 幻灯片标题
+ * @param {string} slideContent - 幻灯片内容
+ * @param {Array<string>} imageKeywords - 每张图片的关键词数组
+ * @param {Object} theme - 当前主题配置
+ * @param {Object} config - API 配置
+ * @param {string} imageSource - 图片源 ('ai', 'web')
+ * @param {number} count - 需要生成的图片数量
+ * @returns {Promise<Array<string>>} base64 格式的图片数据数组
+ */
+export async function generateMultipleImages(slideTitle, slideContent, imageKeywords, theme, config, imageSource = 'ai', count = 2) {
+    const images = [];
+
+    for (let i = 0; i < count; i++) {
+        try {
+            // 使用不同的关键词或内容片段
+            const keywords = imageKeywords && imageKeywords[i] ? imageKeywords[i] : slideContent;
+            const promptSuffix = count > 1 ? ` (视角 ${i + 1})` : '';
+
+            if (imageSource === 'ai') {
+                const base64 = await generateSlideImageAI(
+                    slideTitle + promptSuffix,
+                    keywords,
+                    theme,
+                    config
+                );
+                images.push(base64);
+            } else if (imageSource === 'web') {
+                const searchResults = await searchSlideImages(slideTitle, keywords, config);
+                if (searchResults.length > i) {
+                    // 下载并转换为 base64
+                    const base64 = await downloadImageAsBase64(searchResults[i].url);
+                    images.push(base64);
+                } else {
+                    // 没有足够的图片，使用占位符
+                    console.warn(`未找到第 ${i + 1} 张图片`);
+                    images.push(null);
+                }
+            }
+        } catch (error) {
+            console.error(`生成第 ${i + 1} 张图片失败:`, error);
+            images.push(null);
+        }
+    }
+
+    return images.filter(img => img !== null); // 过滤掉失败的图片
+}
+
+/**
  * 检查图片源是否可用
  * @param {string} source - 图片源
  * @param {Object} config - API配置

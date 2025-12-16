@@ -510,48 +510,81 @@ function addImageGridLayout(slide, slideData, textCol, accentCol, fontFace) {
             x: 0.5,
             y: 1.2,
             w: 9,
+            h: 0.8,
             fontSize: 12,
             color: textCol,
             fontFace
         });
     }
 
-    // 图片网格 (2x2)
-    if (slideData.images && slideData.images.length) {
-        const gridSize = 2;
-        const imageW = 4;
-        const imageH = 2.5;
-        const gap = 0.5;
-        const startX = 1;
-        const startY = 2.2;
+    // 获取图片数组（支持新的 images 数组格式和旧的 imgData 格式）
+    let imageArray = [];
+    if (slideData.images && Array.isArray(slideData.images)) {
+        imageArray = slideData.images;
+    } else if (slideData.imgData) {
+        imageArray = [slideData.imgData];
+    }
 
-        slideData.images.slice(0, 4).forEach((imgData, idx) => {
-            const row = Math.floor(idx / gridSize);
-            const col = idx % gridSize;
-            const x = startX + (col * (imageW + gap));
-            const y = startY + (row * (imageH + gap));
+    // 图片网格布局
+    if (imageArray.length > 0) {
+        const imageCount = Math.min(imageArray.length, 4); // 最多4张
+        const startY = slideData.content ? 2.2 : 1.3;
 
-            if (imgData) {
+        // 根据图片数量动态调整布局
+        if (imageCount === 1) {
+            // 单张图片 - 居中大图
+            slide.addImage({
+                data: `image/png;base64,${imageArray[0]}`,
+                x: 1.5,
+                y: startY,
+                w: 7,
+                h: 3,
+                sizing: { type: "cover", w: 7, h: 3 }
+            });
+        } else if (imageCount === 2) {
+            // 两张图片 - 左右布局
+            const imageW = 4.2;
+            const imageH = 2.8;
+            const gap = 0.6;
+            const startX = (10 - imageW * 2 - gap) / 2; // 居中
+
+            imageArray.slice(0, 2).forEach((imgData, idx) => {
+                const x = startX + (idx * (imageW + gap));
                 slide.addImage({
                     data: `image/png;base64,${imgData}`,
                     x,
-                    y,
+                    y: startY,
                     w: imageW,
                     h: imageH,
                     sizing: { type: "cover", w: imageW, h: imageH }
                 });
-            } else {
-                // 占位框
-                slide.addShape('rect', {
-                    x,
-                    y,
-                    w: imageW,
-                    h: imageH,
-                    fill: { color: 'F0F0F0' },
-                    line: { color: accentCol, dashType: 'dash' }
-                });
-            }
-        });
+            });
+        } else {
+            // 3-4张图片 - 2x2 网格
+            const gridSize = 2;
+            const imageW = 4;
+            const imageH = 2.2;
+            const gap = 0.5;
+            const startX = 1;
+
+            imageArray.slice(0, 4).forEach((imgData, idx) => {
+                const row = Math.floor(idx / gridSize);
+                const col = idx % gridSize;
+                const x = startX + (col * (imageW + gap));
+                const y = startY + (row * (imageH + gap));
+
+                if (imgData) {
+                    slide.addImage({
+                        data: `image/png;base64,${imgData}`,
+                        x,
+                        y,
+                        w: imageW,
+                        h: imageH,
+                        sizing: { type: "cover", w: imageW, h: imageH }
+                    });
+                }
+            });
+        }
     }
 }
 
