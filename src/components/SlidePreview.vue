@@ -1,40 +1,44 @@
 <template>
-  <div class="w-full h-full flex flex-col bg-[#05080a]">
+  <div class="w-full h-full flex flex-col slide-preview-immersive">
+    <!-- 沉浸式背景 -->
+    <div class="immersive-backdrop"></div>
+
     <!-- 顶部工具栏 -->
-    <div class="flex items-center justify-between px-6 py-4 border-b border-white/10 shrink-0">
+    <div class="slide-preview-toolbar">
       <div class="flex items-center gap-4">
-        <button @click="$emit('back')" class="text-[#8a9a9a] hover:text-white transition-colors">
+        <button @click="$emit('back')" class="immersive-toolbar-btn">
           <Icon name="arrow-left" :size="20"/>
         </button>
         <div>
-          <h2 class="text-white font-bold text-lg">{{ topic }}</h2>
-          <div class="text-[#8a9a9a] text-xs">{{ slides.length }} 张幻灯片</div>
+          <h2 class="immersive-toolbar-title">{{ topic }}</h2>
+          <div class="immersive-toolbar-subtitle">{{ slides.length }} 张幻灯片</div>
         </div>
       </div>
 
       <!-- 生成进度条（生成中显示） -->
       <div v-if="isGenerating" class="flex-1 max-w-md mx-8">
-        <div class="text-[var(--accent-cyan)] text-xs mb-1">{{ generationLog }}</div>
-        <div class="h-1.5 bg-black/60 rounded-full overflow-hidden">
-          <div class="progress-fill h-full rounded-full transition-all duration-300"
+        <div class="immersive-progress-text">{{ generationLog }}</div>
+        <div class="immersive-progress-track">
+          <div class="immersive-progress-bar"
                :style="{ width: `${generationProgress}%` }"></div>
         </div>
       </div>
 
-      <button @click="$emit('export')"
-              :disabled="isGenerating"
-              class="game-btn px-6 py-2 bg-gradient-to-r from-[var(--accent-gold)] to-[var(--accent-cyan)] text-[#0a1111] font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
-        <Icon name="download" :size="16"/>
-        导出 PPT
-      </button>
+      <div class="flex items-center gap-3">
+        <button @click="toggleThemeEditor"
+                class="immersive-toolbar-btn"
+                title="自定义配色">
+          <Icon name="palette" :size="20"/>
+        </button>
 
-      <button @click="$emit('open-immersive')"
-              :disabled="isGenerating"
-              class="game-btn px-6 py-2 bg-gradient-to-r from-[var(--accent-cyan)] to-[var(--accent-gold)] text-[#0a1111] font-bold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              title="沉浸式全屏预览 (F11)">
-        <Icon name="maximize" :size="16"/>
-        沉浸式预览
-      </button>
+        <button @click="$emit('export')"
+                :disabled="isGenerating"
+                class="immersive-export-btn"
+                :class="{ 'opacity-50 cursor-not-allowed': isGenerating }">
+          <Icon name="download" :size="16"/>
+          导出 PPT
+        </button>
+      </div>
     </div>
 
     <!-- 主体区域：左侧缩略图 + 右侧预览 -->
@@ -361,14 +365,40 @@
       @close="showEditor = false"
       @save="handleSaveEdit"
     />
+
+    <!-- 主题编辑器浮层 -->
+    <Transition name="slide-up">
+      <div v-if="showThemeEditor" class="theme-editor-panel">
+        <div class="theme-editor-header">
+          <h3>自定义配色</h3>
+          <button @click="toggleThemeEditor" class="immersive-toolbar-btn">
+            <Icon name="x" :size="20"/>
+          </button>
+        </div>
+        <div class="theme-editor-body">
+          <div class="color-picker" v-for="(value, key) in editableColors" :key="key">
+            <label>{{ colorLabels[key] }}</label>
+            <input type="color" :value="value" @input="updateColor(key, $event.target.value)">
+          </div>
+          <div class="flex gap-3 mt-6">
+            <button @click="resetTheme" class="theme-editor-btn flex-1">重置</button>
+            <button @click="regenerateTheme" class="theme-editor-btn flex-1" :disabled="isRegeneratingTheme">
+              <Icon v-if="isRegeneratingTheme" name="loader-2" :size="14" class="animate-spin"/>
+              {{ isRegeneratingTheme ? '生成中...' : 'AI重新生成' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import Icon from './Icon.vue'
 import Chart from './Chart.vue'
 import SlideEditor from './SlideEditor.vue'
+import { applyImmersiveTheme, removeImmersiveTheme, generateImmersiveTheme } from '../services/themeGenerator.js'
 
 const props = defineProps({
   topic: String,
@@ -378,10 +408,11 @@ const props = defineProps({
   outline: Array,
   isGenerating: Boolean,
   generationProgress: Number,
-  generationLog: String
+  generationLog: String,
+  immersiveTheme: Object  // 沉浸式主题配色
 })
 
-const emit = defineEmits(['back', 'export', 'update-slide', 'reorder-slides', 'open-immersive'])
+const emit = defineEmits(['back', 'export', 'update-slide', 'reorder-slides', 'update-immersive-theme'])
 
 const selectedIndex = ref(-1)
 const isRegenerating = ref(false)
@@ -539,34 +570,350 @@ function handleSlideDragEnd() {
   draggingSlideIndex.value = null
   dropTargetIndex.value = null
 }
+
+// 主题编辑器状态
+const showThemeEditor = ref(false)
+const editableColors = ref({})
+const isRegeneratingTheme = ref(false)
+
+const colorLabels = {
+  primary: '主色调',
+  secondary: '辅助色',
+  accent: '强调色',
+  surface: '表面色',
+  text: '文字颜色',
+  textSecondary: '次要文字',
+  border: '边框颜色'
+}
+
+// 切换主题编辑器
+function toggleThemeEditor() {
+  showThemeEditor.value = !showThemeEditor.value
+}
+
+// 更新颜色
+function updateColor(key, value) {
+  editableColors.value[key] = value
+  if (props.immersiveTheme && props.immersiveTheme.colors) {
+    const updatedTheme = {
+      ...props.immersiveTheme,
+      colors: {
+        ...props.immersiveTheme.colors,
+        [key]: value
+      }
+    }
+    updatedTheme.cssVariables = {
+      '--immersive-primary': updatedTheme.colors.primary,
+      '--immersive-secondary': updatedTheme.colors.secondary,
+      '--immersive-accent': updatedTheme.colors.accent,
+      '--immersive-bg': updatedTheme.colors.background,
+      '--immersive-surface': updatedTheme.colors.surface,
+      '--immersive-text': updatedTheme.colors.text,
+      '--immersive-text-secondary': updatedTheme.colors.textSecondary,
+      '--immersive-border': updatedTheme.colors.border,
+      '--immersive-shadow': updatedTheme.colors.shadow
+    }
+    applyImmersiveTheme(updatedTheme)
+    emit('update-immersive-theme', updatedTheme)
+  }
+}
+
+// 重置主题
+function resetTheme() {
+  if (props.immersiveTheme && props.immersiveTheme.colors) {
+    editableColors.value = { ...props.immersiveTheme.colors }
+    applyImmersiveTheme(props.immersiveTheme)
+  }
+}
+
+// AI重新生成主题
+async function regenerateTheme() {
+  isRegeneratingTheme.value = true
+  try {
+    const newTheme = await generateImmersiveTheme(
+      props.topic,
+      '',
+      'cyberpunk',
+      props.config
+    )
+    applyImmersiveTheme(newTheme)
+    editableColors.value = { ...newTheme.colors }
+    emit('update-immersive-theme', newTheme)
+  } catch (error) {
+    console.error('重新生成主题失败:', error)
+  } finally {
+    isRegeneratingTheme.value = false
+  }
+}
+
+// 监听immersiveTheme变化，自动应用
+watch(() => props.immersiveTheme, (newTheme) => {
+  if (newTheme) {
+    applyImmersiveTheme(newTheme)
+    editableColors.value = { ...newTheme.colors }
+  }
+}, { immediate: true })
+
+// 组件挂载时应用主题
+onMounted(() => {
+  if (props.immersiveTheme) {
+    applyImmersiveTheme(props.immersiveTheme)
+    editableColors.value = { ...props.immersiveTheme.colors }
+  }
+})
+
+// 组件卸载时移除主题
+onUnmounted(() => {
+  removeImmersiveTheme()
+})
+
 </script>
 
 <style scoped>
+/* 沉浸式预览容器 */
+.slide-preview-immersive {
+  position: relative;
+  background: var(--immersive-bg, linear-gradient(135deg, #1a1a2e 0%, #000000 100%));
+}
+
+/* 沉浸式背景 */
+.immersive-backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--immersive-bg, linear-gradient(135deg, #1a1a2e 0%, #000000 100%));
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* 顶部工具栏 */
+.slide-preview-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: var(--immersive-surface, rgba(0, 0, 0, 0.6));
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--immersive-border, rgba(255, 255, 255, 0.1));
+  position: relative;
+  z-index: 10;
+}
+
+.immersive-toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--immersive-text, #ffffff);
+  letter-spacing: 0.02em;
+}
+
+.immersive-toolbar-subtitle {
+  font-size: 0.75rem;
+  color: var(--immersive-text-secondary, #8a9a9a);
+  margin-top: 0.25rem;
+}
+
+/* 工具栏按钮 */
+.immersive-toolbar-btn {
+  padding: 0.5rem;
+  background: transparent;
+  color: var(--immersive-text, #ffffff);
+  border: 1px solid var(--immersive-border, rgba(255, 255, 255, 0.2));
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.immersive-toolbar-btn:hover {
+  background: var(--immersive-primary, #6fffe9);
+  color: var(--immersive-bg, #000);
+  border-color: var(--immersive-primary, #6fffe9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--immersive-shadow, rgba(111, 255, 233, 0.3));
+}
+
+/* 导出按钮 */
+.immersive-export-btn {
+  padding: 0.5rem 1.25rem;
+  background: linear-gradient(135deg, var(--immersive-primary, #6fffe9), var(--immersive-accent, #d4b778));
+  color: var(--immersive-bg, #000);
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.immersive-export-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--immersive-shadow, rgba(212, 183, 120, 0.4));
+}
+
+.immersive-export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 进度条 */
+.immersive-progress-text {
+  font-size: 0.75rem;
+  color: var(--immersive-text-secondary, #8a9a9a);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.immersive-progress-track {
+  width: 100%;
+  height: 4px;
+  background: var(--immersive-surface, rgba(0, 0, 0, 0.4));
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.immersive-progress-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--immersive-primary, #6fffe9), var(--immersive-accent, #d4b778));
+  transition: width 0.3s ease;
+  border-radius: 2px;
+}
+
+/* 缩略图卡片 */
 .thumbnail-card {
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--immersive-surface, rgba(0, 0, 0, 0.4));
+  border: 1px solid var(--immersive-border, rgba(255, 255, 255, 0.05));
+  transition: all 0.2s;
 }
 
 .thumbnail-card:hover {
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: var(--immersive-primary, rgba(111, 255, 233, 0.5));
+  box-shadow: 0 4px 12px var(--immersive-shadow, rgba(111, 255, 233, 0.2));
 }
 
+/* 主题编辑器面板 */
+.theme-editor-panel {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--immersive-surface, rgba(26, 26, 46, 0.95));
+  backdrop-filter: blur(20px);
+  border-top: 2px solid var(--immersive-border, rgba(212, 183, 120, 0.3));
+  padding: 2rem;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 100;
+  box-shadow: 0 -10px 40px var(--immersive-shadow, rgba(0, 0, 0, 0.5));
+}
+
+.theme-editor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.theme-editor-header h3 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--immersive-text, #e0e0e0);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.theme-editor-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+/* 颜色选择器 */
+.color-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.color-picker label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--immersive-text-secondary, #8a9a9a);
+}
+
+.color-picker input[type="color"] {
+  width: 100%;
+  height: 3rem;
+  border: 2px solid var(--immersive-border, rgba(212, 183, 120, 0.3));
+  border-radius: 0.5rem;
+  cursor: pointer;
+  background: var(--immersive-surface, rgba(0, 0, 0, 0.3));
+  transition: all 0.2s;
+}
+
+.color-picker input[type="color"]:hover {
+  border-color: var(--immersive-primary, #6fffe9);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px var(--immersive-shadow, rgba(111, 255, 233, 0.2));
+}
+
+/* 主题编辑器按钮 */
+.theme-editor-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--immersive-primary, #6fffe9);
+  color: var(--immersive-bg, #000);
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.theme-editor-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--immersive-shadow, rgba(111, 255, 233, 0.3));
+  background: var(--immersive-accent, #d4b778);
+}
+
+.theme-editor-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 自定义滚动条 */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--immersive-surface, rgba(0, 0, 0, 0.3));
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(111, 255, 233, 0.3);
+  background: var(--immersive-primary, rgba(111, 255, 233, 0.3));
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(111, 255, 233, 0.5);
+  background: var(--immersive-primary, rgba(111, 255, 233, 0.5));
+}
+
+/* 工具类 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .line-clamp-3 {
@@ -574,5 +921,38 @@ function handleSlideDragEnd() {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* 动画 */
+.slide-up-enter-active,
+.slide-up-leave-active {
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+}
+
+.slide-up-enter-from,
+.slide-up-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+/* 拖拽状态 */
+.dragging {
+  opacity: 0.5;
+  transform: scale(0.95);
+}
+
+.drop-target {
+  position: relative;
+}
+
+.drop-target::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--immersive-primary, #6fffe9), var(--immersive-accent, #d4b778));
+  border-radius: 1px;
 }
 </style>

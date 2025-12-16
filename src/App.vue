@@ -370,6 +370,7 @@
                         pexelsApiKey: configStore.pexelsApiKey
                       }"
                       :outline="presentationStore.outline"
+                      :immersive-theme="presentationStore.immersiveTheme"
                       :is-generating="presentationStore.isGenerating"
                       :generation-progress="presentationStore.generationProgress"
                       :generation-log="presentationStore.generationLog"
@@ -377,29 +378,11 @@
                       @export="handleExportPPT"
                       @update-slide="handleUpdateSlide"
                       @reorder-slides="handleReorderSlides"
-                      @open-immersive="presentationStore.toggleImmersivePreview()"
+                      @update-immersive-theme="handleUpdateImmersiveTheme"
         />
 
       </transition>
     </div>
-
-    <!-- 沉浸式预览（全屏覆盖层） -->
-    <ImmersivePreview
-      :show="presentationStore.showImmersivePreview"
-      :topic="presentationStore.topic"
-      :slides="presentationStore.slides"
-      :theme="themes[presentationStore.currentThemeKey]"
-      :config="{
-        baseUrl: configStore.baseUrl,
-        apiKey: configStore.apiKey,
-        textModel: configStore.textModel
-      }"
-      :immersive-theme="presentationStore.immersiveTheme"
-      :is-generating="presentationStore.isGenerating"
-      @close="presentationStore.toggleImmersivePreview()"
-      @export="handleExportPPT"
-      @update-immersive-theme="handleUpdateImmersiveTheme"
-    />
   </div>
 </template>
 
@@ -411,7 +394,6 @@ import Icon from './components/Icon.vue'
 import Chart from './components/Chart.vue'
 import FileUpload from './components/FileUpload.vue'
 import SlidePreview from './components/SlidePreview.vue'
-import ImmersivePreview from './components/ImmersivePreview.vue'
 import { generateOutline } from './generators/outline'
 import { generateSlideContent } from './generators/content'
 import { exportToPPTX } from './exporters/pptx'
