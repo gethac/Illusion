@@ -567,7 +567,14 @@ const startFullGeneration = async () => {
     }
   }
 
+  // 更新最终进度
+  presentationStore.updateGenerationProgress(100, '生成完成！')
+
+  // 延迟一点再完成，让用户看到100%
+  await new Promise(resolve => setTimeout(resolve, 500))
+
   presentationStore.finishGeneration(true)
+  console.log('生成已完成，isGenerating:', presentationStore.isGenerating)
 }
 
 const handleExportPPT = async () => {
