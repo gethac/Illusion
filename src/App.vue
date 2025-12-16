@@ -157,7 +157,50 @@
               <div class="text-[#8a9a9a] font-mono text-xs mt-2 w-6">{{ String(index + 1).padStart(2, '0') }}</div>
               <div class="flex-1 space-y-2">
                 <input v-model="item.title" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-gold)] text-white font-bold text-sm outline-none" @click.stop>
-                <textarea v-model="item.desc" rows="1" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-cyan)] text-[#8a9a9a] text-xs outline-none resize-none" @click.stop></textarea>
+                <div class="relative">
+                  <textarea v-model="item.desc" rows="1" class="w-full bg-transparent border-b border-transparent focus:border-[var(--accent-cyan)] text-[#8a9a9a] text-xs outline-none resize-none" @click.stop></textarea>
+
+                  <!-- AI重写按钮组 -->
+                  <div class="absolute -right-1 top-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <button
+                      @click.stop="handleRewrite(index, 'simplify')"
+                      :disabled="rewritingIndex === index"
+                      class="p-1 bg-black/80 hover:bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/30 rounded text-[var(--accent-cyan)] text-[10px] flex items-center gap-1 transition-colors"
+                      title="精简">
+                      <Icon v-if="rewritingIndex === index && rewritingMode === 'simplify'" name="loader-2" :size="10" class="animate-spin"/>
+                      <Icon v-else name="minimize-2" :size="10"/>
+                    </button>
+                    <button
+                      @click.stop="handleRewrite(index, 'expand')"
+                      :disabled="rewritingIndex === index"
+                      class="p-1 bg-black/80 hover:bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/30 rounded text-[var(--accent-cyan)] text-[10px] flex items-center gap-1 transition-colors"
+                      title="扩写">
+                      <Icon v-if="rewritingIndex === index && rewritingMode === 'expand'" name="loader-2" :size="10" class="animate-spin"/>
+                      <Icon v-else name="maximize-2" :size="10"/>
+                    </button>
+                    <button
+                      @click.stop="handleRewrite(index, 'rephrase')"
+                      :disabled="rewritingIndex === index"
+                      class="p-1 bg-black/80 hover:bg-[var(--accent-cyan)]/20 border border-[var(--accent-cyan)]/30 rounded text-[var(--accent-cyan)] text-[10px] flex items-center gap-1 transition-colors"
+                      title="换个说法">
+                      <Icon v-if="rewritingIndex === index && rewritingMode === 'rephrase'" name="loader-2" :size="10" class="animate-spin"/>
+                      <Icon v-else name="refresh-cw" :size="10"/>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 重写预览 -->
+                <div v-if="rewritePreview && rewritePreview.index === index" class="mt-2 p-3 bg-[var(--accent-cyan)]/10 border border-[var(--accent-cyan)]/30 rounded text-xs space-y-2">
+                  <div class="text-[var(--accent-cyan)] font-bold text-[10px] uppercase flex items-center gap-2">
+                    <Icon name="sparkles" :size="12"/>
+                    AI重写预览 ({{ rewritePreview.modeName }})
+                  </div>
+                  <div class="text-white/80 leading-relaxed">{{ rewritePreview.text }}</div>
+                  <div class="flex gap-2 justify-end">
+                    <button @click.stop="cancelRewritePreview" class="px-3 py-1 text-[10px] text-[#8a9a9a] hover:text-white transition-colors">取消</button>
+                    <button @click.stop="applyRewritePreview" class="px-3 py-1 text-[10px] bg-[var(--accent-cyan)] text-[#0a1111] rounded hover:bg-[var(--accent-cyan)]/80 transition-colors">应用</button>
+                  </div>
+                </div>
               </div>
               <button @click.stop="handleRemoveOutlineItem(index)" class="opacity-0 group-hover:opacity-100 text-[#8a9a9a] hover:text-red-400 absolute top-2 right-2 z-10">
                 <Icon name="x" :size="14"/>
@@ -270,6 +313,7 @@ import { generateOutline } from './generators/outline'
 import { generateSlideContent } from './generators/content'
 import { exportToPPTX } from './exporters/pptx'
 import { PPT_THEMES } from './config/themes'
+import { rewriteText, getRewriteMode } from './services/rewrite'
 
 // Stores
 const configStore = useConfigStore()
@@ -285,6 +329,11 @@ const themes = PPT_THEMES
 // 拖拽状态
 const draggingIndex = ref(null)
 const dropTargetIndex = ref(null)
+
+// AI重写状态
+const rewritingIndex = ref(null)
+const rewritingMode = ref(null)
+const rewritePreview = ref(null)
 
 // Methods
 const nextStep = () => {
@@ -366,6 +415,57 @@ const handleDrop = (toIndex, event) => {
 const handleDragEnd = () => {
   draggingIndex.value = null
   dropTargetIndex.value = null
+}
+
+// AI重写处理函数
+const handleRewrite = async (index, mode) => {
+  const item = presentationStore.outline[index]
+  if (!item.desc || !item.desc.trim()) {
+    return
+  }
+
+  rewritingIndex.value = index
+  rewritingMode.value = mode
+
+  try {
+    const config = {
+      baseUrl: configStore.baseUrl,
+      apiKey: configStore.apiKey,
+      textModel: configStore.textModel
+    }
+
+    const rewrittenText = await rewriteText(item.desc, mode, config)
+    const modeInfo = getRewriteMode(mode)
+
+    rewritePreview.value = {
+      index,
+      text: rewrittenText,
+      modeName: modeInfo.name,
+      originalText: item.desc
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      alert('重写失败: ' + err.message)
+    }
+  } finally {
+    rewritingIndex.value = null
+    rewritingMode.value = null
+  }
+}
+
+const applyRewritePreview = () => {
+  if (rewritePreview.value) {
+    const { index, text } = rewritePreview.value
+    presentationStore.updateOutlineItem(index, {
+      ...presentationStore.outline[index],
+      desc: text
+    })
+    rewritePreview.value = null
+  }
+}
+
+const cancelRewritePreview = () => {
+  rewritePreview.value = null
 }
 
 const startFullGeneration = async () => {
