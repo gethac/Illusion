@@ -227,6 +227,9 @@ function addContentSlide(pptx, slideData, textCol, accentCol, fontFace, pageNum,
         case 'image-grid':
             addImageGridLayout(slide, slideData, textCol, accentCol, fontFace);
             break;
+        case 'image-full':
+            addImageFullLayout(slide, slideData, textCol, accentCol, fontFace);
+            break;
         case 'chart':
             addChartLayout(slide, slideData, textCol, accentCol, fontFace);
             break;
@@ -616,3 +619,51 @@ function addChartLayout(slide, slideData, textCol, accentCol, fontFace) {
         });
     }
 }
+
+/**
+ * 全图布局（图片为主，文字为辅）
+ */
+function addImageFullLayout(slide, slideData, textCol, accentCol, fontFace) {
+    const hasImage = slideData.imgData;
+
+    if (hasImage) {
+        // 大图占据大部分空间
+        slide.addImage({
+            data: `image/png;base64,${slideData.imgData}`,
+            x: 0.5,
+            y: 1.3,
+            w: 9,
+            h: 4.2,
+            sizing: { type: "cover", w: 9, h: 4.2 }
+        });
+
+        // 半透明黑色覆盖层（用于确保文字可读）
+        slide.addShape('rect', {
+            x: 0.5,
+            y: 4.5,
+            w: 9,
+            h: 1,
+            fill: { color: '000000', transparency: 30 }
+        });
+
+        // 内容文字（简洁）
+        if (slideData.content) {
+            const shortContent = slideData.content.substring(0, 120) + (slideData.content.length > 120 ? '...' : '');
+            slide.addText(shortContent, {
+                x: 0.8,
+                y: 4.6,
+                w: 8.4,
+                fontSize: 14,
+                color: 'FFFFFF',
+                fontFace,
+                bold: true,
+                align: 'center',
+                valign: 'middle'
+            });
+        }
+    } else {
+        // 没有图片时使用经典布局
+        addClassicLayout(slide, slideData, textCol, accentCol, fontFace);
+    }
+}
+

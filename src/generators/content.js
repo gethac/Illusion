@@ -15,23 +15,54 @@ import { parseJsonSafe } from '../utils/helpers.js';
  * @returns {Promise<Object>} 幻灯片内容对象
  */
 export async function generateSlideContent(topic, slideOutline, config, signal = null) {
-    const prompt = `你是一个专业的 PPT 内容生成器。请为以下幻灯片生成详细、结构化的内容。
+    const prompt = `你是一个专业的 PPT 内容生成器和版式设计师。请为以下幻灯片生成详细、结构化的内容，并智能选择最佳布局。
 
 PPT 主题: ${topic}
 本页标题: ${slideOutline.title}
 本页说明: ${slideOutline.desc}
 
-请严格按照 JSON 格式返回，不要包含任何其他文字说明。根据内容特点选择最合适的布局类型：
+**重要**: 请根据内容特点智能选择最合适的布局，不要总是使用 classic 布局。尽可能使用多样化的布局类型来提升演示效果。
 
-1. **classic** (经典布局): 适合一般内容介绍，包含段落文字 + 3-5 个要点列表
-2. **big-data** (大数据布局): 适合强调某个关键数据指标，如 "89%"、"1.2亿"、"+35%"
-3. **timeline** (时间线布局): 适合流程、步骤、发展历程，包含 3-5 个时间节点
-4. **comparison** (对比布局): 适合两个方案/产品/观点的对比，左右各 3-4 个要点
-5. **chart** (图表布局): 适合展示数据趋势、对比、分布等，需要提供真实的数据可视化
+布局选择指南：
+
+1. **big-data** (大数据布局) - **优先考虑**
+   - 当内容包含关键数据指标时使用（如增长率、市场份额、用户数等）
+   - 适合: "89%增长"、"1.2亿用户"、"+35%提升"、"TOP 1"
+   - 视觉冲击力强，适合强调成果
+
+2. **chart** (图表布局) - **优先考虑**
+   - 当需要展示数据趋势、对比、分布时使用
+   - 必须提供真实的 chartData 和 chartType
+   - 适合: 季度营收、用户增长、市场占比、性能对比
+   - chartType 选择: bar(对比)、pie(占比)、line(趋势)、area(累积)
+
+3. **timeline** (时间线布局)
+   - 当内容涉及流程、步骤、发展历程时使用
+   - 适合: 产品路线图、项目阶段、历史发展、实施步骤
+   - 包含 3-5 个时间节点
+
+4. **comparison** (对比布局)
+   - 当需要对比两个方案、产品或观点时使用
+   - 适合: 方案选择、优劣分析、新旧对比
+   - 左右各 3-4 个要点
+
+5. **image-full** (全图布局) - **新增**
+   - 适合视觉冲击型内容，图片占据大部分空间
+   - 文字简洁，图片为主
+   - 适合: 产品展示、场景介绍、视觉设计
+
+6. **image-grid** (多图网格布局) - **新增**
+   - 需要展示多个相关图片时使用
+   - 适合: 产品系列、案例展示、多场景对比
+   - 需配置 imageCount (2-4张)
+
+7. **classic** (经典布局) - **仅作为后备选择**
+   - 只在以上布局都不适合时使用
+   - 包含段落文字 + 3-5 个要点列表
 
 返回格式示例：
 {
-  "layout": "classic",
+  "layout": "chart",
   "content": "详细的段落描述，200-300字，包含具体数据、案例或论据。使用专业术语，逻辑清晰。",
   "items": [
     "要点1: 包含具体数据或案例",
@@ -40,6 +71,8 @@ PPT 主题: ${topic}
     "要点4: 提供实际应用场景"
   ],
   "speakerNotes": "这是演讲者备注，约200字的演讲稿。包含：1）如何引入本页话题 2）需要强调的关键数据或观点 3）可以举的例子或类比 4）如何过渡到下一页。语气专业但不失亲和力。",
+  "imageCount": 1,
+  "imageKeywords": ["technology", "innovation", "digital transformation"],
   "dataValue": "89%",
   "dataLabel": "用户满意度",
   "leftTitle": "方案A",
@@ -53,6 +86,18 @@ PPT 主题: ${topic}
     }
   ]
 }
+
+字段说明：
+- **layout**: 必填，根据内容选择最合适的布局类型
+- **content**: 必填，200-300字的详细描述
+- **items**: 可选，要点列表（classic/timeline/comparison 布局需要）
+- **speakerNotes**: 必填，给演讲者的演讲稿（200字左右）
+- **imageCount**: 可选，需要的图片数量（1-4张），image-grid 布局时必须指定 2-4
+- **imageKeywords**: 可选，图片搜索关键词数组（英文），帮助生成更准确的配图
+- **dataValue**: big-data 布局必填
+- **dataLabel**: big-data 布局必填
+- **leftTitle/rightTitle**: comparison 布局必填
+- **chartType/chartData**: chart 布局必填
 
 图表布局的 chartData 要求：
 - **chartType**: 必须是 "bar"(柱状图)、"pie"(饼图)、"line"(折线图)、"area"(面积图) 之一
@@ -94,6 +139,8 @@ PPT 主题: ${topic}
         content: "生成失败",
         items: [],
         speakerNotes: "本页内容生成失败，请重新生成。",
+        imageCount: 1,
+        imageKeywords: [],
         dataValue: "",
         dataLabel: "",
         leftTitle: "方案 A",

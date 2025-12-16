@@ -225,6 +225,25 @@
                     </p>
                   </div>
 
+                  <!-- Image Full 布局 -->
+                  <div v-else-if="currentSlide.layout === 'image-full'" class="relative h-full">
+                    <div v-if="currentSlide.imgData" class="w-full h-full rounded-lg overflow-hidden">
+                      <img :src="'data:image/png;base64,' + currentSlide.imgData"
+                           class="w-full h-full object-cover">
+                      <!-- 半透明覆盖层 -->
+                      <div class="absolute bottom-0 left-0 right-0 bg-black/50 backdrop-blur-sm p-6">
+                        <p class="text-lg font-bold text-white text-center">
+                          {{ currentSlide.content.substring(0, 120) }}{{ currentSlide.content.length > 120 ? '...' : '' }}
+                        </p>
+                      </div>
+                    </div>
+                    <div v-else class="flex items-center justify-center h-full">
+                      <p class="text-base" :style="{ color: currentTheme.colors.text }">
+                        {{ currentSlide.content }}
+                      </p>
+                    </div>
+                  </div>
+
                   <!-- Chart 布局 -->
                   <div v-else-if="currentSlide.layout === 'chart'" class="flex flex-col h-full">
                     <p class="text-base mb-6" :style="{ color: currentTheme.colors.text }">
