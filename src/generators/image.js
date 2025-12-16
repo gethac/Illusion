@@ -118,14 +118,19 @@ export async function generateSlideImage(slideTitle, slideContent, theme, config
 /**
  * 检查图片源是否可用
  * @param {string} source - 图片源
+ * @param {Object} config - API配置
  * @returns {boolean}
  */
-export function isImageSourceAvailable(source) {
+export function isImageSourceAvailable(source, config) {
     if (source === 'ai') {
         return true; // AI生成总是可用（需要API Key）
     }
     if (source === 'web') {
-        return hasApiKey('unsplash') || hasApiKey('pexels');
+        const apiKeys = {
+            unsplashApiKey: config?.unsplashApiKey,
+            pexelsApiKey: config?.pexelsApiKey
+        };
+        return hasApiKey(apiKeys, 'unsplash') || hasApiKey(apiKeys, 'pexels');
     }
     return false;
 }
