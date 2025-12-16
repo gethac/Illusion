@@ -192,16 +192,29 @@
             </div>
 
             <!-- 已生成的幻灯片列表 -->
-            <div v-if="presentationStore.slides.length > 0" class="mt-8 max-w-2xl mx-auto">
+            <div v-if="presentationStore.slides.length > 0" class="mt-8 max-w-4xl mx-auto">
               <div class="text-[var(--accent-cyan)] text-xs font-bold tracking-wider uppercase mb-4">已生成幻灯片</div>
-              <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+              <div class="space-y-3 max-h-96 overflow-y-auto custom-scrollbar pr-2">
                 <div v-for="(slide, index) in presentationStore.slides" :key="index"
-                     class="p-3 bg-black/40 border border-white/10 rounded text-left flex items-center gap-3">
-                  <Icon v-if="slide.isGenerating" name="loader-2" :size="16" class="text-[var(--accent-cyan)] animate-spin"/>
-                  <Icon v-else name="check" :size="16" class="text-green-400"/>
-                  <div class="flex-1">
-                    <div class="text-white text-sm font-bold">{{ slide.title }}</div>
-                    <div class="text-[#8a9a9a] text-xs">{{ slide.layout }}</div>
+                     class="p-4 bg-black/40 border border-white/10 rounded-lg hover:border-white/20 transition-colors">
+                  <div class="flex items-start gap-3 mb-2">
+                    <Icon v-if="slide.isGenerating" name="loader-2" :size="16" class="text-[var(--accent-cyan)] animate-spin mt-1"/>
+                    <Icon v-else name="check" :size="16" class="text-green-400 mt-1"/>
+                    <div class="flex-1">
+                      <div class="text-white text-sm font-bold">{{ slide.title }}</div>
+                      <div class="text-[#8a9a9a] text-xs">{{ slide.layout }}</div>
+                    </div>
+                  </div>
+
+                  <!-- 图表预览 -->
+                  <div v-if="slide.layout === 'chart' && slide.chartData && slide.chartType"
+                       class="mt-3 bg-black/60 rounded p-4 border border-[var(--accent-cyan)]/20">
+                    <Chart
+                      :chartType="slide.chartType"
+                      :chartData="slide.chartData"
+                      :theme="themes[presentationStore.currentThemeKey]"
+                      class="h-48"
+                    />
                   </div>
                 </div>
               </div>
@@ -225,6 +238,7 @@ import { ref, onMounted } from 'vue'
 import { useConfigStore } from './stores/config'
 import { usePresentationStore } from './stores/presentation'
 import Icon from './components/Icon.vue'
+import Chart from './components/Chart.vue'
 import { generateOutline } from './generators/outline'
 import { generateSlideContent } from './generators/content'
 import { exportToPPTX } from './exporters/pptx'

@@ -1,5 +1,6 @@
 /**
- * PPT 内容生成器模块
+ * PPT 内容生成器模块 - 增强版
+ * 支持演讲者备注生成
  */
 
 import { createChatCompletion } from '../services/openai.js';
@@ -26,7 +27,7 @@ PPT 主题: ${topic}
 2. **big-data** (大数据布局): 适合强调某个关键数据指标，如 "89%"、"1.2亿"、"+35%"
 3. **timeline** (时间线布局): 适合流程、步骤、发展历程，包含 3-5 个时间节点
 4. **comparison** (对比布局): 适合两个方案/产品/观点的对比，左右各 3-4 个要点
-5. **chart** (图表布局): 适合数据可视化，需要提供 chartType 和 chartData
+5. **chart** (图表布局): 适合展示数据趋势、对比、分布等，需要提供真实的数据可视化
 
 返回格式示例：
 {
@@ -38,6 +39,7 @@ PPT 主题: ${topic}
     "要点3: 强调优势或影响",
     "要点4: 提供实际应用场景"
   ],
+  "speakerNotes": "这是演讲者备注，约200字的演讲稿。包含：1）如何引入本页话题 2）需要强调的关键数据或观点 3）可以举的例子或类比 4）如何过渡到下一页。语气专业但不失亲和力。",
   "dataValue": "89%",
   "dataLabel": "用户满意度",
   "leftTitle": "方案A",
@@ -45,20 +47,37 @@ PPT 主题: ${topic}
   "chartType": "bar",
   "chartData": [
     {
-      "name": "数据系列",
+      "name": "季度营收",
       "labels": ["Q1", "Q2", "Q3", "Q4"],
       "values": [65, 78, 82, 95]
     }
   ]
 }
 
+图表布局的 chartData 要求：
+- **chartType**: 必须是 "bar"(柱状图)、"pie"(饼图)、"line"(折线图)、"area"(面积图) 之一
+- **chartData**: 数组格式，包含一个或多个数据系列对象
+  - name: 数据系列名称（如"季度营收"、"用户增长"）
+  - labels: 横轴标签数组（如["Q1", "Q2", "Q3", "Q4"]或["产品A", "产品B", "产品C"]）
+  - values: 对应的数值数组（如[65, 78, 82, 95]），必须与labels长度一致
+- 数据必须真实可信，符合主题内容
+
 要求：
 1. content 必须详实，包含具体数据、百分比、案例等
 2. items 每项都应该是完整的陈述句，不只是标题
 3. 如果选择 big-data 布局，必须提供真实合理的 dataValue 和 dataLabel
-4. 如果选择 chart 布局，必须提供 chartType ("bar"/"pie"/"line"/"area") 和 chartData
+4. **如果选择 chart 布局，必须提供：**
+   - chartType: "bar"(柱状图-适合对比)、"pie"(饼图-适合占比)、"line"(折线图-适合趋势)、"area"(面积图-适合累积)
+   - chartData: 包含真实数据的数组，数据要有逻辑性和可信度
+   - 数据标签(labels)要清晰明确，数值(values)要符合实际业务场景
 5. 内容要符合"${slideOutline.title}"的主题，与"${slideOutline.desc}"的描述一致
 6. 数据要真实可信，避免空洞内容
+7. **重要**: 必须提供 speakerNotes 字段，这是给演讲者的200字左右的演讲稿，帮助演讲者更好地讲解这一页。包含：
+   - 如何开场引入这一页
+   - 需要强调的关键点（特别是图表数据的关键洞察）
+   - 可以补充的数据或例子
+   - 如何与观众互动
+   - 如何过渡到下一页
 
 请直接返回 JSON，不要有其他说明文字。`;
 
@@ -74,6 +93,7 @@ PPT 主题: ${topic}
         layout: "classic",
         content: "生成失败",
         items: [],
+        speakerNotes: "本页内容生成失败，请重新生成。",
         dataValue: "",
         dataLabel: "",
         leftTitle: "方案 A",
@@ -116,6 +136,7 @@ export async function generateAllSlides(topic, outlineArray, config, onProgress 
                 title: outlineArray[i].title,
                 content: "生成失败，请重试",
                 items: [],
+                speakerNotes: "本页内容生成失败，请重新生成。",
                 imgLoading: false,
                 isRegenerating: false
             });
