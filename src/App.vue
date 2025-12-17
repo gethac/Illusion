@@ -165,7 +165,7 @@
               {{ isLoading ? '解析中...' : '生成大纲' }}
             </button>
           </div>
-          <div v-if="error" class="text-red-400 text-xs">{{ error }}</div>
+          <div v-if="errorMsg" class="text-red-400 text-xs">{{ errorMsg }}</div>
         </div>
 
         <!-- STEP 3: 大纲确认 -->
@@ -415,13 +415,13 @@ const configStore = useConfigStore()
 const presentationStore = usePresentationStore()
 
 // Notification
-const { success, error, warning, info } = useNotification()
+const { success, error: notifyError, warning, info } = useNotification()
 
 // State
 const step = ref(0)
 const isLoading = ref(false)
 const isValidating = ref(false)
-const error = ref('')
+const errorMsg = ref('')
 const isLaunchingGeneration = ref(false)
 const themes = PPT_THEMES
 
@@ -467,7 +467,7 @@ const validateAndSaveConfig = async () => {
       nextStep()
     }
   } catch (err) {
-    error(err.message || '验证失败，请检查配置')
+    notifyError(err.message || '验证失败，请检查配置')
   } finally {
     isValidating.value = false
   }
@@ -475,7 +475,7 @@ const validateAndSaveConfig = async () => {
 
 const handleGenerateOutline = async () => {
   isLoading.value = true
-  error.value = ''
+  errorMsg.value = ''
 
   try {
     info('正在生成大纲，请稍候...')
@@ -502,9 +502,9 @@ const handleGenerateOutline = async () => {
     success(`成功生成 ${outline.length} 个章节`)
     nextStep()
   } catch (err) {
-    const errorMsg = err.message || '生成大纲失败，请检查配置并重试'
-    error.value = errorMsg
-    error(errorMsg)
+    const msg = err.message || '生成大纲失败，请检查配置并重试'
+    errorMsg.value = msg
+    notifyError(msg)
     console.error('大纲生成错误:', err)
   } finally {
     isLoading.value = false
@@ -579,7 +579,7 @@ const handleRewrite = async (index, mode) => {
     }
   } catch (err) {
     if (err.name !== 'AbortError') {
-      error('重写失败: ' + err.message)
+      notifyError('重写失败: ' + err.message)
     }
   } finally {
     rewritingIndex.value = null
@@ -766,7 +766,7 @@ const handleExportPPT = async () => {
     )
     success('PPT 导出成功！')
   } catch (err) {
-    error('导出失败: ' + err.message)
+    notifyError('导出失败: ' + err.message)
   }
 }
 
