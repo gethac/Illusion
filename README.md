@@ -7,6 +7,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Vue](https://img.shields.io/badge/Vue-3.4-green.svg)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-5.0-purple.svg)](https://vitejs.dev/)
+[![部署状态](https://github.com/gethac/Illusion/actions/workflows/deploy.yml/badge.svg)](https://github.com/gethac/Illusion/actions/workflows/deploy.yml)
+
+**🌐 在线演示**: [https://gethac.github.io/Illusion/](https://gethac.github.io/Illusion/)
 
 [快速开始](#-快速开始) | [功能特性](#-功能特性) | [使用指南](#-使用指南) | [最新优化](#-最新优化v20) | [部署](#-部署)
 
@@ -280,7 +283,27 @@ Illusion/
 
 ## 🚀 部署
 
-### GitHub Pages
+### ✅ 自动部署（推荐）
+
+本项目已配置 GitHub Actions 自动部署到 GitHub Pages。
+
+**步骤**：
+
+1. **配置 GitHub Pages**
+   - 访问仓库设置: `Settings` → `Pages`
+   - Source 选择: `GitHub Actions`
+
+2. **触发部署**
+   - 推送代码到 main 分支会自动触发部署
+   - 或在 Actions 页面手动触发
+
+3. **访问网站**
+   - 部署成功后访问: https://gethac.github.io/Illusion/
+   - 通常需要 2-3 分钟完成部署
+
+**查看部署状态**: [GitHub Actions](https://github.com/gethac/Illusion/actions)
+
+### GitHub Pages 手动部署
 
 1. 配置 `vite.config.js` 中的 base 路径
 2. 运行 `npm run build`
