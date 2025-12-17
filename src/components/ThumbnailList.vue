@@ -1,5 +1,5 @@
 <template>
-  <div class="w-64 border-r border-white/10 overflow-y-auto custom-scrollbar p-3 space-y-3">
+  <div class="w-64 flex-shrink-0 border-r border-white/10 overflow-y-auto custom-scrollbar p-3 space-y-3">
     <!-- 封面缩略图 -->
     <div @click="$emit('select-slide', -1)"
          class="thumbnail-card cursor-pointer transition-all"

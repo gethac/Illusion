@@ -289,11 +289,8 @@ defineEmits([
 <style scoped>
 /* 右侧编辑面板 */
 .editor-panel {
-  position: absolute;
-  right: 0;
-  top: 0;
-  bottom: 0;
   width: 28rem;
+  flex-shrink: 0;
   background: var(--immersive-surface, rgba(0, 0, 0, 0.95));
   border-left: 1px solid var(--immersive-border, rgba(255, 255, 255, 0.1));
   backdrop-filter: blur(20px);

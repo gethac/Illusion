@@ -10,7 +10,10 @@
       "Bash(node --version:*)",
       "Bash(npm:*)",
       "Bash(git commit:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(chmod:*)",
+      "Bash(./deploy-guide.sh)",
+      "Bash(bash:*)"
     ]
   }
 }
